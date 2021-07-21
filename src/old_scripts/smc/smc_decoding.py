@@ -1,8 +1,8 @@
 import torch
 from transformers import GPT2Tokenizer, GPT2Model, GPT2LMHeadModel
 import torch.nn.functional as F
-from score_functions.topic_BoW import topic_BoW_function, read_topic_BoW
-from smc.utils import resample_all_seq
+from old_scripts.score_functions.topic_BoW import topic_BoW_function, read_topic_BoW
+from old_scripts.smc.utils import resample_all_seq
 import os
 
 
@@ -20,7 +20,7 @@ def smc_decoding(prompt,  num_sequences=20, max_length=50, score_function=topic_
         scores = score_function(inputs=inputs, bow_tokens=bow_tokens, model=model)
         # RESAMPLE PAST SEQUENCES:
         # get indices from normalized scores:
-        normalized_scores = F.softmax(scores, dim=0) #TODO: pb: gives a (1,0,0,0,0,0...) distrib...
+        normalized_scores = F.softmax(scores, dim=0)
         i_t = torch.multinomial(normalized_scores.squeeze(), num_samples=num_sequences, replacement=True)
         indices_matrix.append(i_t.cpu().squeeze())
         if resample and t>= start_sample_step and t % sample_step == 0:
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     topic = 'science'
     bow_tokens = read_topic_BoW(topic=topic)
 
-    out_path = "../../output/temp"
+    out_path = "../../../output/temp"
     if not os.path.isdir(out_path):
         os.makedirs(out_path)
 

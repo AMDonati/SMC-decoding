@@ -23,3 +23,7 @@ class GPT2FTModel(nn.Module):
         logits = self.trainable_layer(last_hidden_state)
         log_probas = F.log_softmax(logits, dim=-1)
         return log_probas, logits
+
+# to compute the number of trainable parameters;
+#model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+#params = sum([np.prod(p.size()) for p in model_parameters])

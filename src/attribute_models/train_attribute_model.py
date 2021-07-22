@@ -6,6 +6,9 @@ from attribute_models.utils_train import write_to_csv, create_logger
 from language_models.LSTM import LSTMModel
 from language_models.gpt2_finetune import GPT2FTModel
 from attribute_models.sst_sentiment import SSTDataset
+from transformers import GPT2Tokenizer
+from attribute_models.sst_tokenizer import SSTTokenizer
+from datasets import load_dataset
 import os
 import argparse
 import numpy as np
@@ -133,8 +136,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("-out_path", type=str, default="../../output/sst_attribute_model", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="gpt2", help="rnn model")
+    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")
     parser.add_argument("-emb_size", type=int, default=32, help="dimension of the embedding layer")
     parser.add_argument("-hidden_size", type=int, default=64, help="dimension of the hidden state")
@@ -144,45 +149,61 @@ if __name__ == '__main__':
     parser.add_argument("-lr", type=float, default=0.001)
     parser.add_argument("-bs", type=int, default=32, help="batch size")
     parser.add_argument("-ep", type=int, default=1, help="number of epochs")
-    parser.add_argument('-num_workers', type=int, default=0, help="num workers for DataLoader")
+    parser.add_argument('-num_workers', type=int, default=0, help="num workers for DataLoader") #TODO: add this in the loader.
 
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # out files
-    out_path = "../../output/sst_attribute_model/{}_{}L_{}E_{}H_drop{}_gradclip-{}_bs{}".format(args.model,
+    out_path = os.path.join(args.out_path, "{}_tok-{}-{}L_{}E_{}H_drop{}_gradclip-{}_bs{}".format(args.model,
+                                                                                                       args.tokenizer,
                                                                                                 args.num_layers,
                                                                                                 args.emb_size,
                                                                                                 args.hidden_size,
                                                                                                 args.p_drop,
-                                                                                                args.grad_clip, args.bs)
+                                                                                                args.grad_clip, args.bs))
     if not os.path.isdir(out_path):
         os.makedirs(out_path)
     out_file_log = os.path.join(out_path, "training_log.log")
     # logger = create_logger(out_file_log)
 
+    # build tokenizer:
+    if args.tokenizer == "gpt2":
+        tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    elif args.tokenizer == "sst":
+        dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.
+        tokenizer = SSTTokenizer(dataset)
+
     # load dataset
     sst_dataset = SSTDataset()
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
-    train_set, train_dataloader = sst_dataset.preprocess_dataset(train_set, batch_size=args.bs)
-    val_set, val_dataloader = sst_dataset.preprocess_dataset(val_set, batch_size=args.bs)
+    train_set = sst_dataset.preprocess_dataset(train_set)
+    val_set = sst_dataset.preprocess_dataset(val_set)
+    train_set, train_dataloader = sst_dataset.prepare_data_for_torch(train_set, batch_size=args.bs)
+    val_set, val_dataloader = sst_dataset.prepare_data_for_torch(val_set, batch_size=args.bs)
 
     # Build model
     if args.model == "lstm":
-        model = LSTMModel(num_tokens=50258,
+        model = LSTMModel(num_tokens=sst_dataset.len_vocab,
                           emb_size=args.emb_size,
                           hidden_size=args.hidden_size,
                           num_layers=args.num_layers,
                           p_drop=args.p_drop).to(device)
     elif args.model == "gpt2":
-        model = GPT2FTModel(vocab_size=50258)
+        model = GPT2FTModel(vocab_size=sst_dataset.len_vocab)
+
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
-    PAD_IDX = 50257
+    if args.tokenizer == "gpt2":
+        PAD_IDX = 50257 #TODO: replace this in the sst dataset.
+    elif args.tokenizer == "sst":
+        PAD_IDX = 0
     criterion = torch.nn.NLLLoss(ignore_index=PAD_IDX)
 
+    # train model
     train(model=model, train_generator=train_dataloader, val_generator=val_dataloader, criterion=criterion,
           optimizer=optimizer, device=device, out_path=out_path, EPOCHS=args.ep)
-
+    # generate text post-training:
     generate_text_lm(model=model, tokenizer=sst_dataset.tokenizer, device=device, out_path=out_path)

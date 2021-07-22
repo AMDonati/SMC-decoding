@@ -11,15 +11,16 @@ from attribute_models.sst_tokenizer import SSTTokenizer
 
 
 class SSTDataset():
-    def __init__(self, data_path="../../data/sst", tokenizer=GPT2Tokenizer.from_pretrained("gpt2")):
+    def __init__(self, tokenizer=GPT2Tokenizer.from_pretrained("gpt2")):
         self.tokenizer = tokenizer
-        #self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        # self.vocab = None
-        # self.vocab_path = os.path.join(data_path, "vocab.json")
-        # self.SPECIAL_TOKENS = {
-        #     '<PAD>': 0,
-        #     '<UNK>': 1,
-        # }
+        self.len_vocab = self.get_len_vocab()
+
+    def get_len_vocab(self):
+        if self.tokenizer.__class__ == GPT2Tokenizer:
+            len_vocab = len(self.tokenizer.decoder) + 1
+        elif self.tokenizer.__class__ == SSTTokenizer:
+            len_vocab = len(self.tokenizer.vocab)
+        return len_vocab
 
     def visualize_labels(self, dataset):
         plt.hist(dataset['label'], 30, density=True, facecolor='g', alpha=0.75)
@@ -31,47 +32,17 @@ class SSTDataset():
         return train_set, val_set, test_set
 
     def tokenize(self, dataset):
+        def tokenize_example(example):
+            example["input_ids"] = self.tokenizer.encode(example['sentence'])
+            example["attention_mask"] = [1] * len(example["input_ids"])
+            return example
         if self.tokenizer.__class__ == GPT2Tokenizer:
             encoded_dataset = dataset.map(lambda example: self.tokenizer(example['sentence']), batched=True)
         elif self.tokenizer.__class__ == SSTTokenizer:
-            encoded_dataset = dataset.map(lambda example: self.tokenizer.encode(example['sentence']))
+            encoded_dataset = dataset.map(tokenize_example)
         print("encoded_dataset[0]")
         pprint(encoded_dataset[0], compact=True)
         return encoded_dataset
-
-    def get_tokens(self, dataset, add_start_token=False, add_end_token=False, punct_to_remove=[]):
-        def tokenize_sentence(example):
-            example["tokens"] = example["tokens"].split("|")
-            return example
-        processed_dataset = dataset.map(tokenize_sentence)
-        return processed_dataset
-
-    def build_vocab(self, dataset, min_token_count=2, add_start_token=False, add_end_token=False, punct_to_remove=[]):
-        token_to_count = {}
-        start_tokens = []
-        for seq_tokens in dataset["tokens"]:
-            start_tokens.append(seq_tokens[0])
-            for token in seq_tokens:
-                if token not in token_to_count:
-                    token_to_count[token] = 0
-                token_to_count[token] += 1
-        # remove "" token
-        if "" in list(token_to_count.keys()):
-            del token_to_count[""]
-        token_to_idx = {}
-        for token, idx in self.SPECIAL_TOKENS.items():
-            token_to_idx[token] = idx
-        for token, count in sorted(token_to_count.items()):
-            if count >= min_token_count:
-                token_to_idx[token] = len(token_to_idx)
-        # getting the unique starting words.
-        start_tokens = list(set(start_tokens))
-        # saving vocab:
-        with open(self.vocab_path, 'w') as f:
-            json.dump(token_to_idx, f)
-        self.vocab = token_to_idx
-        return token_to_idx, start_tokens, token_to_count
-
 
     def get_binary_label(self, dataset):
         def binarize_label(example):
@@ -127,12 +98,10 @@ class SSTDataset():
 
     def create_data_loader(self, dataset, batch_size):
         dataloader = torch.utils.data.DataLoader(dataset, collate_fn=self.collate_fn, batch_size=batch_size)
-        #dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
         return dataloader
 
     def preprocess_dataset(self, dataset, label=1):
         dataset = self.tokenize(dataset)
-        dataset = self.get_tokens(dataset)
         dataset = self.get_binary_label(dataset)
         dataset = self.get_input_target_sequences(dataset)
         dataset = self.remove_neutral_labels(dataset)
@@ -141,6 +110,18 @@ class SSTDataset():
         print("visualizing labels distribution")
         self.visualize_labels(dataset)
         return dataset
+
+    def check_number_unk_tokens(self, dataset):
+        inputs_ids = dataset["input_ids"]
+        num_unk = 0
+        num_tokens = 0
+        for inp in inputs_ids:
+            len_ = len(inp)
+            num_tokens += len_
+            mask = inp == 1
+            unk = mask.sum().item()
+            num_unk += unk
+        return num_unk / num_tokens, num_unk
 
     def prepare_data_for_torch(self, dataset, batch_size=32):
         dataset = self.get_torch_dataset(dataset)
@@ -153,7 +134,6 @@ if __name__ == '__main__':
     sst_dataset = SSTDataset()
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
     train_set = sst_dataset.preprocess_dataset(train_set)
-    #vocab, start_tokens, tokens_to_count = sst_dataset.build_vocab(train_set)
     train_set, train_dataloader = sst_dataset.prepare_data_for_torch(train_set)
     train_set.__getitem__(0)
     batch = next(iter(train_dataloader))
@@ -166,3 +146,5 @@ if __name__ == '__main__':
     train_set = sst_dataset_sst.preprocess_dataset(train_set)
     # vocab, start_tokens, tokens_to_count = sst_dataset.build_vocab(train_set)
     train_set, train_dataloader = sst_dataset.prepare_data_for_torch(train_set)
+    percent_unk, num_unk = sst_dataset_sst.check_number_unk_tokens(train_set)
+    print("done")

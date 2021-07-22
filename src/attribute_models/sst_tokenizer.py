@@ -3,12 +3,13 @@ import json
 import os
 
 class SSTTokenizer:
-    def __init__(self, dataset, vocab_path='../../data/sst/vocab.json'):
+    def __init__(self, dataset, vocab_path='../../data/sst/vocab.json', label=1):
         self.SPECIAL_TOKENS = {
             '<PAD>': 0,
             '<UNK>': 1,
         }
         self.vocab_path = vocab_path
+        self.label = label
         if os.path.isfile(vocab_path):
             print("Loading vocab")
             with open(vocab_path, 'r') as f:
@@ -19,6 +20,25 @@ class SSTTokenizer:
         self.allow_unk = True
         self.idx_to_token = dict(zip(list(self.vocab.values()), list(self.vocab.keys())))
 
+    def get_binary_label(self, dataset):
+        def binarize_label(example):
+            label = example['label']
+            if label > 0.5:
+                example["binary_label"] = 1
+            else:
+                example["binary_label"] = 0
+            return example
+        processed_dataset = dataset.map(binarize_label)
+        return processed_dataset
+
+    def remove_neutral_labels(self, dataset, label_min=0.4, label_max=0.6):
+        trimmed_dataset = dataset.filter(lambda example: example['label'] < label_min or example['label'] > label_max)
+        return trimmed_dataset
+
+    def filter_per_label(self, dataset):
+        dataset_with_label = dataset.filter(lambda example: example['binary_label']==self.label)
+        return dataset_with_label
+
     def _get_tokens(self, dataset, add_start_token=False, add_end_token=False, punct_to_remove=[]):
         def tokenize_sentence(example):
             example["tokens"] = example["tokens"].split("|")
@@ -27,6 +47,10 @@ class SSTTokenizer:
         return processed_dataset
 
     def build_vocab(self, dataset, min_token_count=2, add_start_token=False, add_end_token=False, punct_to_remove=[]):
+        if self.label is not None:
+            dataset = self.get_binary_label(dataset)
+            dataset = self.remove_neutral_labels(dataset)
+            dataset = self.filter_per_label(dataset)
         dataset = self._get_tokens(dataset)
         token_to_count = {}
         start_tokens = []
@@ -51,25 +75,6 @@ class SSTTokenizer:
         with open(self.vocab_path, 'w') as f:
             json.dump(token_to_idx, f)
         return token_to_idx, start_tokens, token_to_count
-
-    # def tokenize(self, example, punct_to_remove=None, delim='|'):
-    #     """
-    #     Tokenize a sequence, converting a string s into a list of (string) tokens by
-    #     splitting on the specified delimiter. Optionally keep or remove certain
-    #     punctuation marks and add start and end tokens.
-    #     """
-    #     if punct_to_remove is not None:
-    #         for p in punct_to_remove:
-    #             s = s.replace(p, '')
-    #
-    #     tokens = example["tokens"].split(delim)
-    #     start_token_upper = tokens[0]
-    #     tokens = [w.lower() for w in tokens]  # lower all letters.
-    #     if add_start_token:
-    #         tokens.insert(0, '<SOS>')
-    #     if add_end_token:
-    #         tokens.append('<EOS>')
-    #     return tokens, start_token_upper
 
     def encode(self, text, **kwargs):
         code = self.encode_(text, token_to_idx=self.vocab, allow_unk=self.allow_unk)
@@ -110,7 +115,13 @@ class SSTTokenizer:
 if __name__ == '__main__':
     from datasets import load_dataset
     dataset = load_dataset("sst", split='train+validation+test')
-    sst_tokenizer = SSTTokenizer(dataset=dataset)
+    print("full vocab tokenizer")
+    sst_tokenizer = SSTTokenizer(dataset=dataset, label=None)
     print(len(sst_tokenizer.vocab))
     token_ids = sst_tokenizer.encode(dataset["sentence"][0])
+    print("-------------------------------------------------------------------------------------------------------")
+    print("positive sentiment tokenizer")
+    sst_tokenizer = SSTTokenizer(dataset=dataset, label=1, vocab_path="../../data/sst/vocab_label1.json")
+    print("negative sentiment tokenizer")
+    sst_tokenizer = SSTTokenizer(dataset=dataset, label=0, vocab_path="../../data/sst/vocab_label0.json")
     print("done")

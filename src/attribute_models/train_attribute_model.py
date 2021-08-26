@@ -25,6 +25,7 @@ def train_one_epoch(model, train_generator, optimizer, criterion, device, grad_c
     start_time_epoch = time.time()
     for batch, (inputs, targets, attn_mask) in enumerate(train_generator):
         inputs = inputs.to(device)
+        #targets = targets.to(device)
         targets = targets.view(targets.size(1) * targets.size(0)).to(device)  # targets (S*B)
         model.zero_grad()
         if model.__class__ == GPT2FTModel:
@@ -138,8 +139,9 @@ if __name__ == '__main__':
 
     parser.add_argument("-out_path", type=str, default="../../output/sst_attribute_model", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")
     parser.add_argument("-emb_size", type=int, default=32, help="dimension of the embedding layer")
     parser.add_argument("-hidden_size", type=int, default=64, help="dimension of the hidden state")
@@ -174,7 +176,7 @@ if __name__ == '__main__':
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
     elif args.tokenizer == "sst":
         dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.
-        tokenizer = SSTTokenizer(dataset)
+        tokenizer = SSTTokenizer(dataset, label=args.label)
 
     # load dataset
     sst_dataset = SSTDataset()
@@ -196,10 +198,7 @@ if __name__ == '__main__':
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
-    if args.tokenizer == "gpt2":
-        PAD_IDX = 50257 #TODO: replace this in the sst dataset.
-    elif args.tokenizer == "sst":
-        PAD_IDX = 0
+    PAD_IDX = sst_dataset.get_PAD_IDX(args)
     criterion = torch.nn.NLLLoss(ignore_index=PAD_IDX)
 
     # train model

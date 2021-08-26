@@ -1,12 +1,9 @@
 from datasets import load_dataset
-from transformers import GPT2Tokenizer
 import torch
 import matplotlib.pyplot as plt
 from pprint import pprint
-from transformers import GPT2Tokenizer, GPT2Model, GPT2LMHeadModel
+from transformers import GPT2Tokenizer
 from torch.nn.utils.rnn import pad_sequence
-import os
-import json
 from attribute_models.sst_tokenizer import SSTTokenizer
 
 

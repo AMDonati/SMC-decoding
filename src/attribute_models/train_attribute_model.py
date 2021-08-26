@@ -25,7 +25,6 @@ def train_one_epoch(model, train_generator, optimizer, criterion, device, grad_c
     start_time_epoch = time.time()
     for batch, (inputs, targets, attn_mask) in enumerate(train_generator):
         inputs = inputs.to(device)
-        #targets = targets.to(device)
         targets = targets.view(targets.size(1) * targets.size(0)).to(device)  # targets (S*B)
         model.zero_grad()
         if model.__class__ == GPT2FTModel:
@@ -77,13 +76,13 @@ def generate_text_lm(model, tokenizer, device, out_path, temperatures=["greedy",
             for i in range(num_words):
                 _, logits = model(input_idx)  # output (S, num_tokens)
                 if temp != "greedy":
-                    word_weights = logits[-1].squeeze().div(
+                    word_weights = logits[:,-1:,:].squeeze().div(
                         temp).exp()  # (exp(1/temp * logits)) = (p_i^(1/T))
                     word_weights = word_weights / word_weights.sum(dim=-1).cpu()
                     word_idx = torch.multinomial(word_weights, num_samples=1)[
                         0]  # [0] to have a scalar tensor.
                 else:
-                    word_idx = logits[-1].squeeze().argmax()
+                    word_idx = logits[:,-1,:].squeeze().argmax()
                 input_idx = torch.cat([input_idx, word_idx.view(1, 1)], dim=-1)
             words = tokenizer.decode(input_idx.squeeze().cpu())
         dict_words[temp] = words
@@ -139,7 +138,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-out_path", type=str, default="../../output/sst_attribute_model", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")

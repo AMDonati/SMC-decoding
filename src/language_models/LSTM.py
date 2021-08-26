@@ -34,8 +34,9 @@ class LSTMModel(nn.Module):
             emb)  # output (B, seq_len, hidden_size*num_dimension) # hidden: (num_layers * num_directions, B, hidden_size)
         output = self.dropout(output)
         logits = self.fc(output)  # (S,B,num_tokens)
-        logits = logits.view(-1, self.num_tokens)  # (S*B, num_tokens)
+        #logits = logits.view(-1, self.num_tokens)  # (S*B, num_tokens)
         log_probas = F.log_softmax(logits, dim=-1)
+        log_probas = log_probas.view(-1, self.num_tokens)
         return log_probas, logits
 
 
@@ -56,11 +57,3 @@ if __name__ == '__main__':
     print('hidden state', h.shape)
     print('cell state', c.shape)
 
-    # ----------- Test of LSTM with LayerNorm Model -------------------------------------------------------------------------------------------------------------
-
-    model = LayerNormLSTMModel(num_tokens=num_tokens, emb_size=emb_size, hidden_size=hidden_size, num_layers=2,
-                               p_drop=1)
-    output, (h, c) = model(inputs)
-    print('output', output.shape)
-    print('hidden state', h.shape)
-    print('cell state', c.shape)

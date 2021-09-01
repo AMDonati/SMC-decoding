@@ -8,6 +8,7 @@
 #SBATCH --output=slurm_out/sst/sst_gpt2%j.out
 #SBATCH --error=slurm_out/sst/sst_gpt2%j.err
 #SBATCH --time=100:00:00
+#SBATCH -A ktz@gpu
 
 export TMPDIR=$JOBSCRATCH
 module purge

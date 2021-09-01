@@ -12,6 +12,7 @@ from datasets import load_dataset
 import os
 import argparse
 import numpy as np
+import datetime
 
 
 def assert_correctness_batch(inputs, targets):
@@ -164,6 +165,7 @@ if __name__ == '__main__':
                                                                                                 args.hidden_size,
                                                                                                 args.p_drop,
                                                                                                 args.grad_clip, args.bs))
+    out_path = os.path.join(out_path, "{}".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
     if not os.path.isdir(out_path):
         os.makedirs(out_path)
     out_file_log = os.path.join(out_path, "training_log.log")

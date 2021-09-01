@@ -76,13 +76,13 @@ def generate_text_lm(model, tokenizer, device, out_path, temperatures=["greedy",
             for i in range(num_words):
                 _, logits = model(input_idx)  # output (S, num_tokens)
                 if temp != "greedy":
-                    word_weights = logits[-1].squeeze().div(
+                    word_weights = logits[:,-1:,:].squeeze().div(
                         temp).exp()  # (exp(1/temp * logits)) = (p_i^(1/T))
                     word_weights = word_weights / word_weights.sum(dim=-1).cpu()
                     word_idx = torch.multinomial(word_weights, num_samples=1)[
                         0]  # [0] to have a scalar tensor.
                 else:
-                    word_idx = logits[-1].squeeze().argmax()
+                    word_idx = logits[:,-1,:].squeeze().argmax()
                 input_idx = torch.cat([input_idx, word_idx.view(1, 1)], dim=-1)
             words = tokenizer.decode(input_idx.squeeze().cpu())
         dict_words[temp] = words
@@ -140,6 +140,7 @@ if __name__ == '__main__':
     # model params.
     parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")
     parser.add_argument("-emb_size", type=int, default=32, help="dimension of the embedding layer")
     parser.add_argument("-hidden_size", type=int, default=64, help="dimension of the hidden state")
@@ -174,7 +175,7 @@ if __name__ == '__main__':
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
     elif args.tokenizer == "sst":
         dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.
-        tokenizer = SSTTokenizer(dataset)
+        tokenizer = SSTTokenizer(dataset, label=args.label)
 
     # load dataset
     sst_dataset = SSTDataset()
@@ -196,10 +197,7 @@ if __name__ == '__main__':
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
-    if args.tokenizer == "gpt2":
-        PAD_IDX = 50257 #TODO: replace this in the sst dataset.
-    elif args.tokenizer == "sst":
-        PAD_IDX = 0
+    PAD_IDX = sst_dataset.get_PAD_IDX(args)
     criterion = torch.nn.NLLLoss(ignore_index=PAD_IDX)
 
     # train model

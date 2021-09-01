@@ -6,7 +6,7 @@ import torch.nn.functional as F
 class GPT2FTModel(nn.Module):
     def __init__(self, vocab_size, hidden_size=768):
         super(GPT2FTModel, self).__init__()
-        self.configuration = GPT2Config(use_cache=True, output_hidden_states=True)
+        self.configuration = GPT2Config(use_cache=True, output_hidden_states=True, vocab_size=vocab_size)
         self.model = GPT2LMHeadModel(self.configuration).from_pretrained("gpt2")
         for param in self.model.parameters():
             param.requires_grad = False
@@ -16,12 +16,13 @@ class GPT2FTModel(nn.Module):
 
     def forward(self, input, attn_mask=None):
         if attn_mask is None:
-            outputs = self.model(input_ids=input)
+            outputs = self.model(input_ids=input, output_hidden_states=True)
         else:
-            outputs = self.model(input_ids=input, attention_mask=attn_mask)
-        last_hidden_state = outputs.last_hidden_state
+            outputs = self.model(input_ids=input, attention_mask=attn_mask, output_hidden_states=True)
+        last_hidden_state = outputs.hidden_states[-1] # shape (B,S,hidden_size)
         logits = self.trainable_layer(last_hidden_state)
         log_probas = F.log_softmax(logits, dim=-1)
+        log_probas = log_probas.view(log_probas.size(0)*log_probas.size(1), -1)
         return log_probas, logits
 
 # to compute the number of trainable parameters;

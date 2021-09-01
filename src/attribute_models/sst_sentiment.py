@@ -1,12 +1,9 @@
 from datasets import load_dataset
-from transformers import GPT2Tokenizer
 import torch
 import matplotlib.pyplot as plt
 from pprint import pprint
-from transformers import GPT2Tokenizer, GPT2Model, GPT2LMHeadModel
+from transformers import GPT2Tokenizer
 from torch.nn.utils.rnn import pad_sequence
-import os
-import json
 from attribute_models.sst_tokenizer import SSTTokenizer
 
 
@@ -17,10 +14,17 @@ class SSTDataset():
 
     def get_len_vocab(self):
         if self.tokenizer.__class__ == GPT2Tokenizer:
-            len_vocab = len(self.tokenizer.decoder) + 1
+            len_vocab = len(self.tokenizer.decoder)
         elif self.tokenizer.__class__ == SSTTokenizer:
             len_vocab = len(self.tokenizer.vocab)
         return len_vocab
+
+    def get_PAD_IDX(self, args):
+        if args.tokenizer == "gpt2":
+            PAD_IDX = 50256
+        elif args.tokenizer == "sst":
+            PAD_IDX = 0
+        return PAD_IDX
 
     def visualize_labels(self, dataset):
         plt.hist(dataset['label'], 30, density=True, facecolor='g', alpha=0.75)
@@ -75,26 +79,23 @@ class SSTDataset():
         dataset.set_format(type='torch', columns=columns)
         return dataset
 
-    #Instantiate a PyTorch Dataloader around our dataset
-    #Let's do dynamic batching (pad on the fly with our own collate_fn)
-
     def collate_fn(self, examples):
         inputs_ids = [ex["input_ids"] for ex in examples]
         targets_ids = [ex["target_ids"] for ex in examples]
         attn_mask = [ex["attention_mask"][:-1] for ex in examples]
-        inputs_ids = pad_sequence(inputs_ids, batch_first=True, padding_value=50257)
-        targets_ids = pad_sequence(targets_ids, batch_first=True, padding_value=50257)
+        inputs_ids = pad_sequence(inputs_ids, batch_first=True, padding_value=50256)
+        targets_ids = pad_sequence(targets_ids, batch_first=True, padding_value=50256)
         attn_mask = pad_sequence(attn_mask, batch_first=True, padding_value=0)
         return inputs_ids, targets_ids, attn_mask
     #
-    def pad_sequences(self, dataset):
-        def pad(example):
-            example["input_ids"] = pad_sequence([torch.tensor(e) for e in example["input_ids"]], batch_first=True, padding_value=50257)
-            example["target_ids"] = pad_sequence([torch.tensor(e) for e in example["target_ids"]], batch_first=True, padding_value=50257)
-            example["attention_mask"] = pad_sequence([torch.tensor(e) for e in example["attention_mask"]], batch_first=True, padding_value=50257)
-            return example
-        processed_dataset = dataset.map(pad)
-        return processed_dataset
+    # def pad_sequences(self, dataset):
+    #     def pad(example):
+    #         example["input_ids"] = pad_sequence([torch.tensor(e) for e in example["input_ids"]], batch_first=True, padding_value=50257)
+    #         example["target_ids"] = pad_sequence([torch.tensor(e) for e in example["target_ids"]], batch_first=True, padding_value=50257)
+    #         example["attention_mask"] = pad_sequence([torch.tensor(e) for e in example["attention_mask"]], batch_first=True, padding_value=50257)
+    #         return example
+    #     processed_dataset = dataset.map(pad)
+    #     return processed_dataset
 
     def create_data_loader(self, dataset, batch_size):
         dataloader = torch.utils.data.DataLoader(dataset, collate_fn=self.collate_fn, batch_size=batch_size)

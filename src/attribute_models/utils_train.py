@@ -4,7 +4,6 @@ import logging
 import logging.config
 import os
 from csv import writer
-
 import numpy as np
 
 

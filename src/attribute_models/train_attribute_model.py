@@ -196,7 +196,7 @@ if __name__ == '__main__':
                           num_layers=args.num_layers,
                           p_drop=args.p_drop).to(device)
     elif args.model == "gpt2":
-        model = GPT2FTModel(vocab_size=sst_dataset.len_vocab)
+        model = GPT2FTModel(vocab_size=sst_dataset.len_vocab).to(device)
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)

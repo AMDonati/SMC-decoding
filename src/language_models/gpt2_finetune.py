@@ -6,7 +6,7 @@ class GPT2FTModel(nn.Module):
     def __init__(self, vocab_size, device, hidden_size=768):
         super(GPT2FTModel, self).__init__()
         self.configuration = GPT2Config(use_cache=True, output_hidden_states=True, vocab_size=vocab_size)
-        self.model = GPT2LMHeadModel(self.configuration).from_pretrained("cache/gpt2")
+        self.model = GPT2LMHeadModel(self.configuration).from_pretrained("cache/gpt2").to(device)
         for param in self.model.parameters():
             param.requires_grad = False
         self.tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")

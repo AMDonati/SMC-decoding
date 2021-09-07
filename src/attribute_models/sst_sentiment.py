@@ -8,7 +8,7 @@ from attribute_models.sst_tokenizer import SSTTokenizer
 
 
 class SSTDataset():
-    def __init__(self, tokenizer=GPT2Tokenizer.from_pretrained("gpt2")):
+    def __init__(self, tokenizer=GPT2Tokenizer.from_pretrained("cache/gpt2")):
         self.tokenizer = tokenizer
         self.len_vocab = self.get_len_vocab()
 

@@ -30,7 +30,8 @@ def train_one_epoch(model, train_generator, optimizer, criterion, device, grad_c
         targets = targets.view(targets.size(1) * targets.size(0)).to(device)  # targets (S*B)
         model.zero_grad()
         if model.__class__ == GPT2FTModel:
-            output, hidden = model(inputs, attn_mask)
+            output, hidden = model(inputs)
+            #output, hidden = model(inputs, attn_mask)
         else:
             output, hidden = model(inputs)  # output (S * B, V), hidden (num_layers,B,1)
         loss = criterion(output, targets)

@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=sst-gpt2
-#SBATCH --qos=qos_gpu-3
+#SBATCH --qos=qos_gpu-t3
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8

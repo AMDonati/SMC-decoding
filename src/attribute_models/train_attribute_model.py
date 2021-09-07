@@ -146,7 +146,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-out_path", type=str, default="../../output/sst_attribute_model", help="out path ")
+    parser.add_argument("-out_path", type=str, default="output/sst_attribute_model", help="out path ")
     # model params.
     parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")

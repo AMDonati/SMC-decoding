@@ -15,5 +15,8 @@ Before running scripts:
 * python src/save_datasets_models.py
 
 ### Training the attribute model
+#### with GPT2 Tokenizer
 * `python src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -label 1 -emb_size 32 -hidden_size 64 -p_drop 0.0 -ep 50 -bs 32 -num_workers 4`
 * `python src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1  -p_drop 0.0 -ep 50 -bs 32 -num_workers 4`
+#### with SST Tokenizer
+*  `python src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -tokenizer "sst" -label 1 -emb_size 32 -hidden_size 64 -p_drop 0.0 -ep 5 -bs 32 -num_workers 4`

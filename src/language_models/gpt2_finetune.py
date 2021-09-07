@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class GPT2FTModel(nn.Module):
-    def __init__(self, vocab_size, hidden_size=768):
+    def __init__(self, vocab_size, device, hidden_size=768):
         super(GPT2FTModel, self).__init__()
         self.configuration = GPT2Config(use_cache=True, output_hidden_states=True, vocab_size=vocab_size)
         self.model = GPT2LMHeadModel(self.configuration).from_pretrained("cache/gpt2")
@@ -11,7 +11,7 @@ class GPT2FTModel(nn.Module):
             param.requires_grad = False
         self.tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        self.trainable_layer = nn.Linear(hidden_size, vocab_size)
+        self.trainable_layer = nn.Linear(hidden_size, vocab_size).to(device)
 
     def forward(self, input, attn_mask=None):
         if attn_mask is None:

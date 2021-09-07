@@ -30,8 +30,8 @@ def train_one_epoch(model, train_generator, optimizer, criterion, device, grad_c
         targets = targets.view(targets.size(1) * targets.size(0)).to(device)  # targets (S*B)
         model.zero_grad()
         if model.__class__ == GPT2FTModel:
-            output, hidden = model(inputs)
-            #output, hidden = model(inputs, attn_mask)
+            #output, hidden = model(inputs)
+            output, hidden = model(inputs, attn_mask)
         else:
             output, hidden = model(inputs)  # output (S * B, V), hidden (num_layers,B,1)
         loss = criterion(output, targets)
@@ -170,8 +170,9 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # out files
+    tok_string = args.tokenizer if args.tokenizer == "gpt2" else "{}-count{}-lv{}".format(args.tokenizer, args.min_count, args.label_vocab)
     out_path = os.path.join(args.out_path, "{}_tok-{}-{}L_{}E_{}H_drop{}_gradclip-{}_bs{}".format(args.model,
-                                                                                                       args.tokenizer,
+                                                                                                       tok_string,
                                                                                                 args.num_layers,
                                                                                                 args.emb_size,
                                                                                                 args.hidden_size,
@@ -208,7 +209,7 @@ if __name__ == '__main__':
                           num_layers=args.num_layers,
                           p_drop=args.p_drop).to(device)
     elif args.model == "gpt2":
-        model = GPT2FTModel(vocab_size=sst_dataset.len_vocab).to(device)
+        model = GPT2FTModel(vocab_size=sst_dataset.len_vocab, device=device).to(device)
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)

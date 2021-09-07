@@ -26,6 +26,7 @@ def train_one_epoch(model, train_generator, optimizer, criterion, device, grad_c
     start_time_epoch = time.time()
     for batch, (inputs, targets, attn_mask) in enumerate(train_generator):
         inputs = inputs.to(device)
+        attn_mask = attn_mask.to(device)
         targets = targets.view(targets.size(1) * targets.size(0)).to(device)  # targets (S*B)
         model.zero_grad()
         if model.__class__ == GPT2FTModel:

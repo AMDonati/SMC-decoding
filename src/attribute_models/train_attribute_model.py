@@ -134,6 +134,14 @@ def train(model, train_generator, val_generator, optimizer, criterion, device, o
     write_to_csv(os.path.join(out_path, "train_history.csv"), hist_dict)
 
 
+def get_sst_tokenizer_vocab(args):
+    if args.label_vocab is None:
+        vocab_path = "data/sst/vocab_mincount{}.json".format(args.min_count)
+    else:
+        vocab_path = "data/sst/vocab_mincount{}_label{}.json".format(args.min_count, args.label_vocab)
+    return vocab_path
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -142,6 +150,8 @@ if __name__ == '__main__':
     # model params.
     parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
+    parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")
     parser.add_argument("-emb_size", type=int, default=32, help="dimension of the embedding layer")
@@ -176,9 +186,10 @@ if __name__ == '__main__':
     if args.tokenizer == "gpt2":
         tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-    #elif args.tokenizer == "sst":
-        #dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.
-        #tokenizer = SSTTokenizer(dataset, label=args.label)
+    elif args.tokenizer == "sst":
+        dataset = load_from_disk("cache/sst/all_data")
+        vocab_path = get_sst_tokenizer_vocab(args)
+        tokenizer = SSTTokenizer(dataset, vocab_path=vocab_path)
 
     # load dataset
     sst_dataset = SSTDataset()

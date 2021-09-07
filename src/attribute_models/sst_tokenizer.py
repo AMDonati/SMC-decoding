@@ -3,13 +3,12 @@ import json
 import os
 
 class SSTTokenizer:
-    def __init__(self, dataset, vocab_path='../../data/sst/vocab.json', label=1):
+    def __init__(self, dataset, vocab_path='../../data/sst/vocab.json'):
         self.SPECIAL_TOKENS = {
             '<PAD>': 0,
             '<UNK>': 1,
         }
         self.vocab_path = vocab_path
-        self.label = label
         if os.path.isfile(vocab_path):
             print("Loading vocab")
             with open(vocab_path, 'r') as f:
@@ -46,8 +45,8 @@ class SSTTokenizer:
         processed_dataset = dataset.map(tokenize_sentence)
         return processed_dataset
 
-    def build_vocab(self, dataset, min_token_count=2, add_start_token=False, add_end_token=False, punct_to_remove=[]):
-        if self.label is not None:
+    def build_vocab(self, dataset, min_token_count=2, label=None):
+        if label is not None:
             dataset = self.get_binary_label(dataset)
             dataset = self.remove_neutral_labels(dataset)
             dataset = self.filter_per_label(dataset)

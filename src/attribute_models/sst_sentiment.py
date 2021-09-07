@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_from_disk
 import torch
 import matplotlib.pyplot as plt
 from pprint import pprint
@@ -31,8 +31,11 @@ class SSTDataset():
         plt.show()
 
     def load_sst_dataset(self):
-        dataset = load_dataset('sst')
-        train_set, val_set, test_set = dataset["train"], dataset["validation"], dataset["test"]
+        #dataset = load_dataset('sst')
+        train_set = load_from_disk("cache/sst/train")
+        val_set = load_from_disk("cache/sst/val")
+        test_set = load_from_disk("cache/sst/val")
+        #train_set, val_set, test_set = dataset["train"], dataset["validation"], dataset["test"]
         return train_set, val_set, test_set
 
     def tokenize(self, dataset):

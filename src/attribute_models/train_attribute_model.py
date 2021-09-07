@@ -8,7 +8,7 @@ from language_models.gpt2_finetune import GPT2FTModel
 from attribute_models.sst_sentiment import SSTDataset
 from transformers import GPT2Tokenizer
 from attribute_models.sst_tokenizer import SSTTokenizer
-from datasets import load_dataset
+from datasets import load_from_disk
 import os
 import argparse
 import numpy as np
@@ -139,7 +139,7 @@ if __name__ == '__main__':
 
     parser.add_argument("-out_path", type=str, default="../../output/sst_attribute_model", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")
@@ -175,9 +175,9 @@ if __name__ == '__main__':
     if args.tokenizer == "gpt2":
         tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-    elif args.tokenizer == "sst":
-        dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.
-        tokenizer = SSTTokenizer(dataset, label=args.label)
+    #elif args.tokenizer == "sst":
+        #dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.
+        #tokenizer = SSTTokenizer(dataset, label=args.label)
 
     # load dataset
     sst_dataset = SSTDataset()

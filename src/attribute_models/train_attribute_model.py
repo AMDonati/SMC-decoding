@@ -173,7 +173,7 @@ if __name__ == '__main__':
 
     # build tokenizer:
     if args.tokenizer == "gpt2":
-        tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+        tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
         tokenizer.add_special_tokens({'pad_token': '[PAD]'})
     #elif args.tokenizer == "sst":
         #dataset = load_dataset("sst", split='train+validation+test') #TODO: add label argument and choose between positive / negative tokenizer.

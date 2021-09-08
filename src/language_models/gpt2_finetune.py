@@ -17,6 +17,8 @@ class GPT2FTModel(nn.Module):
         if attn_mask is None:
             outputs = self.model(input_ids=input, output_hidden_states=True)
         else:
+            print(input.device)
+            print(attn_mask.device)
             outputs = self.model(input_ids=input, attention_mask=attn_mask, output_hidden_states=True)
         last_hidden_state = outputs.hidden_states[-1] # shape (B,S,hidden_size)
         logits = self.trainable_layer(last_hidden_state)

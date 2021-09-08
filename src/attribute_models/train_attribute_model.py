@@ -59,6 +59,7 @@ def evaluate(model, val_generator, criterion, device):
     start_time = time.time()
     with torch.no_grad():
         for batch, (inputs, targets, attn_mask) in enumerate(val_generator):
+            attn_mask = attn_mask.to(device)
             inputs = inputs.to(device)
             targets = targets.view(targets.size(1) * targets.size(0)).to(device)
             if model.__class__ == GPT2FTModel:

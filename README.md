@@ -7,6 +7,11 @@ Install the datasets library from source:
 `git clone https://github.com/huggingface/datasets.git`  
 `cd datasets`  
 `pip install -e .`
+#### if not working:
+* install cython and scm_tools: 
+  *`pip install cython`
+  * `pip install setuptools_scm`
+* upgrade pip
 
 Before running scripts: 
 `export PYTHONPATH=src:${PYTHONPATH}`

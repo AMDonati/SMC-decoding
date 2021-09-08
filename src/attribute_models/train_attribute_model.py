@@ -195,7 +195,7 @@ if __name__ == '__main__':
         tokenizer = SSTTokenizer(dataset, vocab_path=vocab_path)
 
     # load dataset
-    sst_dataset = SSTDataset()
+    sst_dataset = SSTDataset(tokenizer=tokenizer)
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
     train_set = sst_dataset.preprocess_dataset(train_set)
     val_set = sst_dataset.preprocess_dataset(val_set)

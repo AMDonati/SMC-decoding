@@ -46,9 +46,10 @@ if __name__ == '__main__':
     hidden_size = 128
     num_tokens = 85
     seq_len = 5
-    device = torch.device("cpu")
-    inputs = torch.ones(batch_size, seq_len, dtype=torch.long).to(device)
-
+    #device = torch.device("cpu")
+    #inputs = torch.ones(batch_size, seq_len, dtype=torch.float32)\
+        #.to(device)
+    inputs = torch.ones(batch_size, seq_len)
     # ------------ Test of LSTM Model ---------------------------------------------------------------------------------------------------------------------------
 
     model = LSTMModel(num_tokens=num_tokens, emb_size=emb_size, hidden_size=hidden_size, bidirectional=True)

@@ -88,7 +88,7 @@ def generate_text_lm(model, tokenizer, device, out_path, temperatures=["greedy",
                 else:
                     word_idx = logits[:,-1,:].squeeze().argmax()
                 input_idx = torch.cat([input_idx, word_idx.view(1, 1)], dim=-1)
-            words = tokenizer.decode(input_idx.squeeze().cpu())
+            words = tokenizer.decode(input_idx.squeeze().cpu().numpy()) # add item()
         dict_words[temp] = words
         out_file_generate = os.path.join(out_path,
                                          'generate_words_temp_{}_prompt_{}.txt'.format(temp, prompt))
@@ -150,8 +150,8 @@ if __name__ == '__main__':
 
     parser.add_argument("-out_path", type=str, default="output/sst_attribute_model", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
-    parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-tokenizer", type=str, default="sst", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
     parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
@@ -195,7 +195,7 @@ if __name__ == '__main__':
         tokenizer = SSTTokenizer(dataset, vocab_path=vocab_path)
 
     # load dataset
-    sst_dataset = SSTDataset(tokenizer=tokenizer)
+    sst_dataset = SSTDataset(tokenizer=tokenizer, args=args)
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
     train_set = sst_dataset.preprocess_dataset(train_set)
     val_set = sst_dataset.preprocess_dataset(val_set)

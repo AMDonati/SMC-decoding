@@ -8,9 +8,10 @@ from attribute_models.sst_tokenizer import SSTTokenizer
 
 
 class SSTDataset():
-    def __init__(self, tokenizer=GPT2Tokenizer.from_pretrained("cache/gpt2")):
+    def __init__(self, tokenizer, args):
         self.tokenizer = tokenizer
         self.len_vocab = self.get_len_vocab()
+        self.PAD_IDX = self.get_PAD_IDX(args)
 
     def get_len_vocab(self):
         if self.tokenizer.__class__ == GPT2Tokenizer:
@@ -86,8 +87,8 @@ class SSTDataset():
         inputs_ids = [ex["input_ids"] for ex in examples]
         targets_ids = [ex["target_ids"] for ex in examples]
         attn_mask = [ex["attention_mask"][:-1] for ex in examples]
-        inputs_ids = pad_sequence(inputs_ids, batch_first=True, padding_value=50256)
-        targets_ids = pad_sequence(targets_ids, batch_first=True, padding_value=50256)
+        inputs_ids = pad_sequence(inputs_ids, batch_first=True, padding_value=self.PAD_IDX)
+        targets_ids = pad_sequence(targets_ids, batch_first=True, padding_value=self.PAD_IDX)
         attn_mask = pad_sequence(attn_mask, batch_first=True, padding_value=0)
         return inputs_ids, targets_ids, attn_mask
 

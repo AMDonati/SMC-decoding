@@ -151,7 +151,7 @@ if __name__ == '__main__':
     parser.add_argument("-out_path", type=str, default="output/temp", help="out path ")
     # model params.
     parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
-    parser.add_argument("-model_path", type=str, default="output/gpt2_bs16/20210908-105828/model.pt", help="path if starting with a trained_model.")
+    parser.add_argument("-model_path", type=str, help="path if starting with a trained_model.")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
     parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.)")
@@ -175,10 +175,11 @@ if __name__ == '__main__':
     tok_string = args.tokenizer if args.tokenizer == "gpt2" else "{}-count{}-lv{}".format(args.tokenizer, args.min_count, args.label_vocab)
     if args.model == "lstm":
         out_path = os.path.join(args.out_path, "{}_tok-{}_{}E_{}H_p{}_lr{}_gradclip-{}_bs{}".format(args.model,
-                                                                                                           tok_string,
+                                                                                                    tok_string,
                                                                                                     args.emb_size,
                                                                                                     args.hidden_size,
                                                                                                     args.p_drop,
+                                                                                                    args.lr,
                                                                                                     args.grad_clip, args.bs))
     elif args.model == "gpt2":
         out_path = os.path.join(args.out_path, "{}_lr{}_gradclip-{}_bs{}".format(args.model, args.lr,

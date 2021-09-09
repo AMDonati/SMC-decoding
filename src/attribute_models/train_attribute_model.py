@@ -30,7 +30,6 @@ def train_one_epoch(model, train_generator, optimizer, criterion, device, grad_c
         targets = targets.view(targets.size(1) * targets.size(0)).to(device)  # targets (S*B)
         model.zero_grad()
         if model.__class__ == GPT2FTModel:
-            #output, hidden = model(inputs)
             output, hidden = model(inputs, attn_mask)
         else:
             output, hidden = model(inputs)  # output (S * B, V), hidden (num_layers,B,1)
@@ -71,25 +70,26 @@ def evaluate(model, val_generator, criterion, device):
     return total_loss / (batch + 1)
 
 
-def generate_text_lm(model, tokenizer, device, out_path, temperatures=["greedy", 0.7, 1, 2], num_words=50, prompt="The"):
-    dict_words = {k: [] for k in temperatures}
+def generate_text_lm(model, tokenizer, device, out_path, temperatures=["greedy", 0.7, 1, 2], num_words=50, prompt="The", num=5):
+    dict_words = {k: "" for k in temperatures}
     for temp in temperatures:
-        input_idx = tokenizer.encode(prompt, return_tensors="pt")
-        input_idx = input_idx.view(1, 1).to(device)
-        with torch.no_grad():
-            for i in range(num_words):
-                _, logits = model(input_idx)  # output (S, num_tokens)
-                if temp != "greedy":
-                    word_weights = logits[:,-1:,:].squeeze().div(
-                        temp).exp()  # (exp(1/temp * logits)) = (p_i^(1/T))
-                    word_weights = word_weights / word_weights.sum(dim=-1).cpu()
-                    word_idx = torch.multinomial(word_weights, num_samples=1)[
-                        0]  # [0] to have a scalar tensor.
-                else:
-                    word_idx = logits[:,-1,:].squeeze().argmax()
-                input_idx = torch.cat([input_idx, word_idx.view(1, 1)], dim=-1)
-            words = tokenizer.decode(input_idx.squeeze().cpu().numpy()) # add item()
-        dict_words[temp] = words
+        for n in range(num):
+            input_idx = tokenizer.encode(prompt, return_tensors="pt").to(device)
+            #input_idx = input_idx.view(1, input_idx.shape[0]).to(device)
+            with torch.no_grad():
+                for i in range(num_words):
+                    _, logits = model(input_idx)  # output (S, num_tokens)
+                    if temp != "greedy":
+                        word_weights = logits[:,-1:,:].squeeze().div(
+                            temp).exp()  # (exp(1/temp * logits)) = (p_i^(1/T))
+                        word_weights = word_weights / word_weights.sum(dim=-1).cpu()
+                        word_idx = torch.multinomial(word_weights, num_samples=1)[
+                            0]  # [0] to have a scalar tensor.
+                    else:
+                        word_idx = logits[:,-1,:].squeeze().argmax()
+                    input_idx = torch.cat([input_idx, word_idx.view(1, 1)], dim=-1)
+                words = tokenizer.decode(input_idx.squeeze().cpu().numpy()) # add item()
+            dict_words[temp] = dict_words[temp] + '\n' + '\n' + words
         out_file_generate = os.path.join(out_path,
                                          'generate_words_temp_{}_prompt_{}.txt'.format(temp, prompt))
         with open(out_file_generate, 'w') as f:
@@ -148,22 +148,23 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-out_path", type=str, default="output/sst_attribute_model", help="out path ")
+    parser.add_argument("-out_path", type=str, default="output/temp", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
-    parser.add_argument("-tokenizer", type=str, default="sst", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-model_path", type=str, default="output/gpt2_bs16/20210908-105828/model.pt", help="path if starting with a trained_model.")
+    parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
-    parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.")
+    parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.)")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
     parser.add_argument("-num_layers", type=int, default=1, help="num layers for language model")
     parser.add_argument("-emb_size", type=int, default=32, help="dimension of the embedding layer")
     parser.add_argument("-hidden_size", type=int, default=64, help="dimension of the hidden state")
     # SL algo args.
-    parser.add_argument("-p_drop", type=float, default=0.1, help="dropout rate")
+    parser.add_argument("-p_drop", type=float, default=0., help="dropout rate")
     parser.add_argument("-grad_clip", type=float)
     parser.add_argument("-lr", type=float, default=0.001)
     parser.add_argument("-bs", type=int, default=32, help="batch size")
-    parser.add_argument("-ep", type=int, default=1, help="number of epochs")
+    parser.add_argument("-ep", type=int, default=0, help="number of epochs")
     parser.add_argument('-num_workers', type=int, default=0, help="num workers for DataLoader") #TODO: add this in the loader.
 
     args = parser.parse_args()
@@ -203,6 +204,8 @@ if __name__ == '__main__':
     val_set, val_dataloader = sst_dataset.prepare_data_for_torch(val_set, batch_size=args.bs)
 
     # Build model
+    if args.model_path is not None:
+        model = torch.load(args.model_path, map_location=device)
     if args.model == "lstm":
         model = LSTMModel(num_tokens=sst_dataset.len_vocab,
                           emb_size=args.emb_size,
@@ -220,5 +223,9 @@ if __name__ == '__main__':
     # train model
     train(model=model, train_generator=train_dataloader, val_generator=val_dataloader, criterion=criterion,
           optimizer=optimizer, device=device, out_path=out_path, EPOCHS=args.ep)
-    # generate text post-training:
-    generate_text_lm(model=model, tokenizer=sst_dataset.tokenizer, device=device, out_path=out_path)
+
+    #prompts = ['The', 'The movie', 'I think that', 'I liked the movie.']
+    prompts = ['The', 'The movie', 'I think that', 'I liked the movie.', 'I disliked badly the movie.']
+    for prompt in prompts:
+        # generate text post-training:
+        generate_text_lm(model=model, tokenizer=sst_dataset.tokenizer, device=device, out_path=out_path, prompt=prompt)

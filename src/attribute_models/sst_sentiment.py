@@ -5,13 +5,16 @@ from pprint import pprint
 from transformers import GPT2Tokenizer
 from torch.nn.utils.rnn import pad_sequence
 from attribute_models.sst_tokenizer import SSTTokenizer
+from nltk.probability import FreqDist
+from nltk.tokenize import word_tokenize
+import os
 
 
 class SSTDataset():
-    def __init__(self, tokenizer, args):
+    def __init__(self, tokenizer):
         self.tokenizer = tokenizer
         self.len_vocab = self.get_len_vocab()
-        self.PAD_IDX = self.get_PAD_IDX(args)
+        self.PAD_IDX = self.get_PAD_IDX()
 
     def get_len_vocab(self):
         if self.tokenizer.__class__ == GPT2Tokenizer:
@@ -20,23 +23,50 @@ class SSTDataset():
             len_vocab = len(self.tokenizer.vocab)
         return len_vocab
 
-    def get_PAD_IDX(self, args):
-        if args.tokenizer == "gpt2":
+    def get_PAD_IDX(self):
+        if self.tokenizer.__class__ == GPT2Tokenizer:
             PAD_IDX = 50256
-        elif args.tokenizer == "sst":
+        elif self.tokenizer.__class__ == SSTTokenizer:
             PAD_IDX = 0
         return PAD_IDX
 
-    def visualize_labels(self, dataset):
+    def visualize_labels(self, dataset, out_path="src/statistics", split="train"):
         plt.hist(dataset['label'], 30, density=True, facecolor='g', alpha=0.75)
-        plt.show()
+        plt.savefig(os.path.join(out_path, "sst_{}_dataset_label_distribution.png").format(split))
+
+    def get_frequency_tokens(self, dataset):
+        token = word_tokenize(" ".join(dataset["sentence"]))
+        fdist = FreqDist(token)
+        return fdist
+
+    def plot_most_frequent_words(self, dataset, num_words=50, out_path="src/statistics", split="train"):
+        fdist = self.get_frequency_tokens(dataset)
+        fdist1 = fdist.most_common(num_words)
+        fdist1_dict = {key: value for key, value in fdist1}
+        plt.figure(figsize=(num_words, 10))
+        plt.title("Most common words")
+        plt.bar(fdist1_dict.keys(), fdist1_dict.values())
+        plt.tick_params(labelsize=24)
+        plt.savefig(os.path.join(out_path, "sst_{}_dataset_most_common_words.png").format(split))
+
+    def get_len_reviews(self, dataset):
+        def len_review(example):
+            example["len_sentence"] = len(word_tokenize(example["sentence"]))
+            return example
+        dataset_with_len = dataset.map(len_review)
+        return dataset_with_len
+
+    def plot_len_reviews(self, dataset, out_path="src/statistics", split="train"):
+        dataset = self.get_len_reviews(dataset)
+        plt.figure(figsize=(20, 10))
+        plt.title("reviews size distribution")
+        plt.hist(dataset["len_sentence"], bins=30)
+        plt.savefig(os.path.join(out_path, "sst_{}_dataset_review_size_distribution.png".format(split)))
 
     def load_sst_dataset(self):
-        #dataset = load_dataset('sst')
         train_set = load_from_disk("cache/sst/train")
         val_set = load_from_disk("cache/sst/val")
-        test_set = load_from_disk("cache/sst/val")
-        #train_set, val_set, test_set = dataset["train"], dataset["validation"], dataset["test"]
+        test_set = load_from_disk("cache/sst/test")
         return train_set, val_set, test_set
 
     def tokenize(self, dataset):
@@ -103,8 +133,6 @@ class SSTDataset():
         dataset = self.remove_neutral_labels(dataset)
         if label is not None:
             dataset = self.filter_per_label(dataset, label=label)
-        #print("visualizing labels distribution")
-        #self.visualize_labels(dataset)
         return dataset
 
     def check_number_unk_tokens(self, dataset):
@@ -127,15 +155,18 @@ class SSTDataset():
 
 if __name__ == '__main__':
     print("SST dataset with GPT2 tokenizer")
-    sst_dataset = SSTDataset()
+    tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
+    sst_dataset = SSTDataset(tokenizer=tokenizer)
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
+    sst_dataset.plot_most_frequent_words(train_set)
+    sst_dataset.plot_len_reviews(train_set)
     train_set = sst_dataset.preprocess_dataset(train_set)
     train_set, train_dataloader = sst_dataset.prepare_data_for_torch(train_set)
     train_set.__getitem__(0)
     batch = next(iter(train_dataloader))
     print("-----------------------------------------------------------------------------")
     print("SST dataset with SST tokenizer")
-    dataset = load_dataset("sst", split='train+validation+test')
+    dataset = load_from_disk("cache/sst/all_data")
     sst_tokenizer = SSTTokenizer(dataset=dataset)
     sst_dataset_sst = SSTDataset(tokenizer=sst_tokenizer)
     train_set, val_set, test_set = sst_dataset_sst.load_sst_dataset()

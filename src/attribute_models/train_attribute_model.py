@@ -173,13 +173,17 @@ if __name__ == '__main__':
 
     # out files
     tok_string = args.tokenizer if args.tokenizer == "gpt2" else "{}-count{}-lv{}".format(args.tokenizer, args.min_count, args.label_vocab)
-    out_path = os.path.join(args.out_path, "{}_tok-{}-{}L_{}E_{}H_drop{}_gradclip-{}_bs{}".format(args.model,
-                                                                                                       tok_string,
-                                                                                                args.num_layers,
-                                                                                                args.emb_size,
-                                                                                                args.hidden_size,
-                                                                                                args.p_drop,
-                                                                                                args.grad_clip, args.bs))
+    if args.model == "lstm":
+        out_path = os.path.join(args.out_path, "{}_tok-{}_{}E_{}H_p{}_lr{}_gradclip-{}_bs{}".format(args.model,
+                                                                                                           tok_string,
+                                                                                                    args.emb_size,
+                                                                                                    args.hidden_size,
+                                                                                                    args.p_drop,
+                                                                                                    args.grad_clip, args.bs))
+    elif args.model == "gpt2":
+        out_path = os.path.join(args.out_path, "{}_lr{}_gradclip-{}_bs{}".format(args.model, args.lr,
+                                                                                                args.grad_clip,
+                                                                                                args.bs))
     out_path = os.path.join(out_path, "{}".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
     if not os.path.isdir(out_path):
         os.makedirs(out_path)

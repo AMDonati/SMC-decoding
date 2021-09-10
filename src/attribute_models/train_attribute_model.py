@@ -74,8 +74,8 @@ def generate_text_lm(model, tokenizer, device, out_path, temperatures=["greedy",
     dict_words = {k: "" for k in temperatures}
     for temp in temperatures:
         for n in range(num):
-            input_idx = tokenizer.encode(prompt, return_tensors="pt").to(device)
-            #input_idx = input_idx.view(1, input_idx.shape[0]).to(device)
+            input_idx = tokenizer.encode(prompt, return_tensors="pt")
+            input_idx = input_idx.view(1, input_idx.shape[0]).to(device)
             with torch.no_grad():
                 for i in range(num_words):
                     _, logits = model(input_idx)  # output (S, num_tokens)
@@ -150,9 +150,9 @@ if __name__ == '__main__':
 
     parser.add_argument("-out_path", type=str, default="output/temp", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-model_path", type=str, help="path if starting with a trained_model.")
-    parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-tokenizer", type=str, default="sst", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
     parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.)")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
@@ -222,7 +222,7 @@ if __name__ == '__main__':
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
-    PAD_IDX = sst_dataset.get_PAD_IDX(args)
+    PAD_IDX = sst_dataset.get_PAD_IDX()
     criterion = torch.nn.NLLLoss(ignore_index=PAD_IDX)
 
     # train model

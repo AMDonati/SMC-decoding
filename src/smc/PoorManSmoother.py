@@ -10,7 +10,7 @@ import time
 
 
 class SmoothingAlgo:
-    def __init__(self, bootstrap_filter, observations, out_folder,
+    def __init__(self, bootstrap_filter, observations, out_folder=None,
                 logger=None):
         # '''
         # :param bootstrap_filter: Class Implementing a Bootstrap filter algorithm.
@@ -70,7 +70,7 @@ class PoorManSmoothing(SmoothingAlgo):
         # '''
         super(PoorManSmoothing, self).__init__(bootstrap_filter=bootstrap_filter, observations=observations,
                                                out_folder=out_folder, logger=logger)
-        self.init_particles() #TODO: check this function.
+        #self.init_particles() #TODO: check this function.
 
     def run_PMS(self):
         with torch.no_grad():
@@ -124,6 +124,17 @@ class PoorManSmoothing(SmoothingAlgo):
         for t in reversed(range(n_times)):
             resampled_trajectories[t, :, :] = trajectories[t, genealogy[t, :], :] # (seq_len, P, hidden_size)
         return np.transpose(resampled_trajectories, axes=[1,0,2])
+
+    def select_trajectories(self, num=1, select='topk'):
+        if select == 'topk':
+            values, indices = torch.topk(input=self.filtering_weights, k=num)
+        elif select == 'sampling':
+            indices = torch.multinomial(self.filtering_weights, num_samples=num)
+        indices = indices.view(indices.shape[0],1,1).repeat(1, self.trajectories.shape[1], self.trajectories.shape[-1])
+        selected_traj = torch.gather(input=self.trajectories, index=indices, dim=0)  # shape (num, S, hidden_size)
+        return selected_traj, indices
+
+
 
 
 if __name__ == '__main__':

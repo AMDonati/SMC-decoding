@@ -18,8 +18,7 @@ class BootstrapFilter:
              resampling weights of shape (B,P=num_particles).
         '''
         # get current prediction from hidden state.
-        predictions = self.transition_model.predict_from_hidden(hidden) # (P,V) #TODO: check this function.
-        #observations = observations.repeat(1, self.num_particles, 1)
+        predictions, _ = self.transition_model.predict_from_hidden(hidden) # (P,V) #TODO: check this function.
         w = torch.gather(input=predictions, index=observations, dim=-1).squeeze() # (P)
         w = F.softmax(w, dim=0) # dim (P,1)
         return w
@@ -48,7 +47,6 @@ class BootstrapFilter:
         else:
             resampled_h = hidden
         # Selection : get $h_t$ = \xi_t^l
-        #observation = observation.repeat(1, self.num_particles, 1)
         new_hidden, current_hidden = self.transition_model.get_new_hidden(hidden=resampled_h, observation=observation, sigma=sigma) #TODO: check this function. Ok add noise here.
         # compute $w_t$
         new_weights = self.compute_filtering_weights(hidden=new_hidden, observations=next_observation)

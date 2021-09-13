@@ -37,9 +37,9 @@ class GPT2FTModel(nn.Module):
 
     def predict_from_hidden(self, hidden):
         logits = self.trainable_layer(hidden) # (P,S,V)
-        probas = F.softmax(logits, dim=-1)
-        probas = probas[:,-1,:]
-        return probas
+        all_probas = F.softmax(logits, dim=-1)
+        probas = all_probas[:,-1,:]
+        return probas, all_probas
 
     def get_new_hidden(self, hidden, observation, sigma=0.5):
         outputs = self.model(input_ids=observation, output_hidden_states=True)
@@ -57,6 +57,19 @@ class GPT2FTModel(nn.Module):
         gaussian_noise = torch.normal(mean=params.new_zeros(params.size()), std=params.new_ones(params.size()))
         noise = (sigma) ** (1 / 2) * gaussian_noise #here sigma is a variance.
         return params + noise
+
+    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0):
+        inputs = self.tokenizer.encode(prompt, return_tensors="pt")
+        # Sampling decoding.
+        sample_output = self.model.generate(
+            inputs,
+            do_sample=True,
+            max_length=max_length,
+            top_k=top_k
+        )
+        print("Output:\n" + 100 * '-')
+        print(self.tokenizer.decode(sample_output[0], skip_special_tokens=True))
+        return sample_output.unsqueeze(-1)
 
 # to compute the number of trainable parameters;
 #model_parameters = filter(lambda p: p.requires_grad, model.parameters())

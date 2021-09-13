@@ -211,14 +211,15 @@ if __name__ == '__main__':
     # Build model
     if args.model_path is not None:
         model = torch.load(args.model_path, map_location=device)
-    if args.model == "lstm":
-        model = LSTMModel(num_tokens=sst_dataset.len_vocab,
+    else:
+        if args.model == "lstm":
+            model = LSTMModel(num_tokens=sst_dataset.len_vocab,
                           emb_size=args.emb_size,
                           hidden_size=args.hidden_size,
                           num_layers=args.num_layers,
                           p_drop=args.p_drop).to(device)
-    elif args.model == "gpt2":
-        model = GPT2FTModel(vocab_size=sst_dataset.len_vocab, device=device)
+        elif args.model == "gpt2":
+            model = GPT2FTModel(vocab_size=sst_dataset.len_vocab, device=device)
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)

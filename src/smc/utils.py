@@ -11,13 +11,12 @@ def resample(params, I):
     resampled_params = torch.gather(input=params, index=I, dim=1)
     return resampled_params
 
-
 def resample_all_seq(params, i_t):
     '''
-    :param params > shape (B,S)
-    :param i_t: current indice > shape (B)
+    :param params > shape (B,S,D)
+    :param i_t: current indice > shape (P)
     '''
-    I = i_t.view(i_t.size(0), 1).repeat(1, params.size(-1))
+    I = i_t.view(i_t.size(0), 1, 1).repeat(1, params.size(-2), params.size(-1)) # shape (P,S,hidden_size)
     resampled_params = torch.gather(input=params, index=I, dim=0)
     return resampled_params
 
@@ -38,12 +37,6 @@ def create_logger(out_file_log):
     logger.addHandler(ch)
     return logger
 
-
-def inv_tanh(x):
-    return 1/2*torch.log((1+x)/(1-x))
-
-def derive_tanh(x):
-    return 1 - torch.pow(F.tanh(x), 2)
 
 if __name__ == "__main__":
 

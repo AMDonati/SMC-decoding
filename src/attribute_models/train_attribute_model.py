@@ -229,7 +229,6 @@ if __name__ == '__main__':
     train(model=model, train_generator=train_dataloader, val_generator=val_dataloader, criterion=criterion,
           optimizer=optimizer, device=device, out_path=out_path, EPOCHS=args.ep)
 
-    #prompts = ['The', 'The movie', 'I think that', 'I liked the movie.']
     prompts = ['The', 'The movie', 'I think that', 'I liked the movie.', 'I disliked badly the movie.']
     for prompt in prompts:
         # generate text post-training:

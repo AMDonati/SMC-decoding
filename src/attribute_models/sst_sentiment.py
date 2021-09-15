@@ -129,10 +129,10 @@ class SSTDataset():
     def preprocess_dataset(self, dataset, label=1):
         dataset = self.tokenize(dataset)
         dataset = self.get_binary_label(dataset)
-        dataset = self.get_input_target_sequences(dataset)
-        dataset = self.remove_neutral_labels(dataset)
+        dataset = self.get_input_target_sequences(dataset) #8544
+        dataset = self.remove_neutral_labels(dataset) #6920 samples.
         if label is not None:
-            dataset = self.filter_per_label(dataset, label=label)
+            dataset = self.filter_per_label(dataset, label=label) # 3610 samples
         return dataset
 
     def check_number_unk_tokens(self, dataset):

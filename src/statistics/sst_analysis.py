@@ -8,7 +8,12 @@ if __name__ == '__main__':
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
     for (split, dataset) in zip(["train", "val", "test"],[train_set, val_set, test_set]):
         sst_dataset.plot_most_frequent_words(dataset, split=split)
-        sst_dataset.plot_len_reviews(train_set, split=split)
+        sst_dataset.plot_len_reviews(dataset, split=split)
 
+    train_set1 = sst_dataset.preprocess_dataset(train_set, label=1)
+    val_set1 = sst_dataset.preprocess_dataset(val_set, label=1)
+    test_set1 = sst_dataset.preprocess_dataset(test_set, label=1)
 
-
+    for (split, dataset) in zip(["train_label1", "val_label1", "test_label1"],[train_set1, val_set1, test_set1]):
+        sst_dataset.plot_most_frequent_words(dataset, split=split)
+        sst_dataset.plot_len_reviews(dataset, split=split)

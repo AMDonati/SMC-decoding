@@ -204,10 +204,12 @@ if __name__ == '__main__':
     # load dataset
     sst_dataset = SSTDataset(tokenizer=tokenizer)
     train_set, val_set, test_set = sst_dataset.load_sst_dataset()
-    train_set = sst_dataset.preprocess_dataset(train_set)
-    val_set = sst_dataset.preprocess_dataset(val_set)
+    train_set = sst_dataset.preprocess_dataset(train_set, label=args.label)
+    val_set = sst_dataset.preprocess_dataset(val_set, label=args.label)
     train_set, train_dataloader = sst_dataset.prepare_data_for_torch(train_set, batch_size=args.bs)
     val_set, val_dataloader = sst_dataset.prepare_data_for_torch(val_set, batch_size=args.bs)
+    print("len train set", len(train_set)) # 3610 samples
+    print("len val set", len(val_set))  # 444 samples
 
     # Build model
     if args.model_path is not None:

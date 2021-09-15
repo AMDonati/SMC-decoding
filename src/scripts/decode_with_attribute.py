@@ -151,6 +151,7 @@ if __name__ == '__main__':
                                                                                          out_folder=out_folder,
                                                                                          sigma=args.std,
                                                                                          noise_function=noise_function,
+                                                                                            device=device,
                                                                                          max_length=args.max_length,
                                                                                          num_particles=args.num_particles,
                                                                                          num_iterations=args.num_iterations,

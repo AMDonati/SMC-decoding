@@ -17,9 +17,9 @@ conda activate smc-dec
 
 export PYTHONPATH=src:${PYTHONPATH}
 
-MODEL_PATH = "output/models/gpt2ft_sst1/1/model.pt"
-OUT_PATH = "output/sst_decoding"
-NOISE_FUNCTION = "constant"
+MODEL_PATH="output/models/gpt2ft_sst1/1/model.pt"
+OUT_PATH="output/sst_decoding"
+NOISE_FUNCTION="constant"
 
 srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.05 -noise_function $NOISE_FUNCTION
 srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.1 -noise_function $NOISE_FUNCTION
@@ -28,7 +28,7 @@ srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out
 srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 1 -noise_function $NOISE_FUNCTION
 srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 5 -noise_function $NOISE_FUNCTION
 
-NOISE_FUNCTION = "decreasing"
+NOISE_FUNCTION="decreasing"
 
 srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.05 -noise_function $NOISE_FUNCTION
 srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.1 -noise_function $NOISE_FUNCTION

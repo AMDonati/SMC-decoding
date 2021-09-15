@@ -111,7 +111,7 @@ if __name__ == '__main__':
     parser.add_argument("-num_iterations", type=int, default=10, help='number of iterations for the decoding algo.')
     parser.add_argument("-select", type=str, default='sampling',
                         help='selection method for the hidden states & observations.')
-    parser.add_argument("-std", type=int, default=0.5,
+    parser.add_argument("-std", type=float, default=0.5,
                         help='sigma constant for the noise added to the transition model.')
     parser.add_argument("-noise_function", type=str, default="constant",
                         help='sigma function for the noise added to the transition model.')

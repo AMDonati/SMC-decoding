@@ -28,7 +28,7 @@ def sample_new_observations(predictions, num=1, select='sampling', seed=None):
     return indices
 
 
-def decode_with_attribute(prompt, model, device, out_folder, sigma, noise_function, max_length=50, num_particles=10,
+def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_length=50, num_particles=10,
                           num_iterations=10, num_trajectories=1, num_observations=1, select='sampling', seed=None):
     out_file_log = os.path.join(out_folder, '{}_word_sequences.log'.format(prompt))
     logger = create_logger(out_file_log)
@@ -37,7 +37,7 @@ def decode_with_attribute(prompt, model, device, out_folder, sigma, noise_functi
     bootstrap_filter = BootstrapFilter(num_particles=num_particles, transition_model=model, sigma=sigma,
                                        noise_function=noise_function)
     # Get init word sequences
-    init_observations = model.generate_input_word_sequences(prompt=prompt, device=device, max_length=max_length, seed=seed)
+    init_observations = model.generate_input_word_sequences(prompt=prompt, max_length=max_length, seed=seed)
     observations = init_observations
 
     seq_of_observations, seq_of_hidden, seq_of_decoded_observations = [init_observations], [], [model.tokenizer.decode(init_observations.squeeze(), skip_special_tokens=True)]
@@ -151,7 +151,6 @@ if __name__ == '__main__':
                                                                                          out_folder=out_folder,
                                                                                          sigma=args.std,
                                                                                          noise_function=noise_function,
-                                                                                            device=device,
                                                                                          max_length=args.max_length,
                                                                                          num_particles=args.num_particles,
                                                                                          num_iterations=args.num_iterations,

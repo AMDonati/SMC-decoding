@@ -14,6 +14,7 @@ class GPT2FTModel(nn.Module):
         self.tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
         self.trainable_layer = nn.Linear(hidden_size, vocab_size).to(device)
+        self.device = device
 
     def forward(self, input, attn_mask=None):
         if attn_mask is None:
@@ -59,14 +60,14 @@ class GPT2FTModel(nn.Module):
         :param sigma: covariance matrix.
         :return:
         '''
-        std_tensor_ = std_tensor.view(1,std_tensor.size(0),1).repeat(params.size(0), 1, params.size(-1))
+        std_tensor_ = std_tensor.view(1,std_tensor.size(0),1).repeat(params.size(0), 1, params.size(-1)).to(self.device)
         gaussian_noise = torch.normal(mean=params.new_zeros(params.size()), std=std_tensor_)
         return params + gaussian_noise
 
-    def generate_input_word_sequences(self, prompt, device, max_length=50, top_k=0, seed=None):
+    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0, seed=None):
         if seed is not None:
             torch.manual_seed(seed)
-        inputs = self.tokenizer.encode(prompt, return_tensors="pt").to(device)
+        inputs = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
         # Sampling decoding.
         sample_output = self.model.generate(
             inputs,

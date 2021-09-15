@@ -101,12 +101,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-out_path", type=str, default="output/temp/sst_decoding", help="out path")
-    parser.add_argument("-model_path", type=str, default='output/sst_attribute_model/best_models/gpt2_ft/1/model.pt', help="path for the pretrained attribute model")
+    parser.add_argument("-model_path", type=str, default="output/sst_attribute_model/best_models/gpt2_ft/1/model.pt",  help="path for the pretrained attribute model")
+    # 'output/sst_attribute_model/best_models/gpt2_ft/1/model.pt'
     parser.add_argument("-max_length", type=int, default=50, help='length maximal for word sequence')
     parser.add_argument("-num_particles", type=int, default=50, help='number of particles for the smc algo.')
-    parser.add_argument("-num_trajectories", type=int, default=5,
+    parser.add_argument("-num_trajectories", type=int, default=1,
                         help='number of trajectories to display for the smc algo.')
-    parser.add_argument("-num_observations", type=int, default=5,
+    parser.add_argument("-num_observations", type=int, default=1,
                         help='number of observations to display for the smc algo.')
     parser.add_argument("-num_iterations", type=int, default=10, help='number of iterations for the decoding algo.')
     parser.add_argument("-select", type=str, default='sampling',
@@ -143,8 +144,10 @@ if __name__ == '__main__':
     elif args.noise_function == 'sqrt_decreasing':
         noise_function = sqrt_decreasing_noise_with_time
 
-    #prompts = ["The movie is"]
-    prompts = ["The movie is", "I disliked the movie", "I liked the movie.", "The potato", "This man is very ugly.", "This man is awesome."]
+    if device.type == "cpu":
+        prompts = ["The movie is", "The potato"]
+    else:
+        prompts = ["The movie is", "I disliked the movie", "I liked the movie.", "The potato", "This man is very ugly.", "This man is awesome."]
     for prompt in prompts:
         out_file_log = '{}_word_sequences.log'.format(prompt)
         seq_of_hidden, seq_of_observations, seq_decoded_observations = decode_with_attribute(prompt=prompt, model=model,

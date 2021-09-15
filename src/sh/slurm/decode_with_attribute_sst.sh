@@ -30,9 +30,9 @@ srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out
 
 NOISE_FUNCTION="decreasing"
 
-srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.05 -noise_function $NOISE_FUNCTION
-srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.1 -noise_function $NOISE_FUNCTION
-srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.25 -noise_function $NOISE_FUNCTION
-srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.5 -noise_function $NOISE_FUNCTION
+#srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.05 -noise_function $NOISE_FUNCTION
+#srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.1 -noise_function $NOISE_FUNCTION
+#srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.25 -noise_function $NOISE_FUNCTION
+#srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 0.5 -noise_function $NOISE_FUNCTION
 #srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 1 -noise_function $NOISE_FUNCTION
 #srun python -u src/scripts/decode_with_attribute.py -model_path $MODEL_PATH -out_path $OUT_PATH -std 5 -noise_function $NOISE_FUNCTION

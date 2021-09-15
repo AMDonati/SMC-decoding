@@ -22,6 +22,8 @@ class SmoothingAlgo:
         self.bootstrap_filter = bootstrap_filter
         self.transition_model = bootstrap_filter.transition_model
         self.num_particles = self.bootstrap_filter.num_particles
+        self.sigma = self.bootstrap_filter.sigma
+        self.noise_function = self.bootstrap_filter.noise_function
         self.observations = observations.repeat(self.num_particles, 1, 1)  # Tensor of shape (particles, seq_len, 1)
         self.seq_len = self.observations.size(-2)
         if logger is None:
@@ -36,7 +38,7 @@ class SmoothingAlgo:
         return logger
 
     def init_particles(self):
-        self.trajectories = self.transition_model.get_hidden_from_input(input=self.observations) #TODO: init with zeros instead ?
+        self.trajectories = self.transition_model.get_hidden_from_input(input=self.observations, sigma=self.sigma, noise_function=self.noise_function) #TODO: init with zeros instead ?
         #self.trajectories = init_trajectories.repeat(self.num_particles, 1, 1) # shape (P,S,hidden_size)
         # self.ancestors = torch.normal(
         #     mean=torch.zeros(self.states.size(0), self.num_particles, self.states.size(-1)),
@@ -70,7 +72,6 @@ class PoorManSmoothing(SmoothingAlgo):
         # '''
         super(PoorManSmoothing, self).__init__(bootstrap_filter=bootstrap_filter, observations=observations,
                                                out_folder=out_folder, logger=logger)
-        #self.init_particles() #TODO: check this function.
 
     def run_PMS(self):
         with torch.no_grad():
@@ -84,7 +85,6 @@ class PoorManSmoothing(SmoothingAlgo):
                 i_t = torch.multinomial(self.old_filtering_weights, num_samples=self.num_particles, replacement=True)
                 indices_matrix.append(i_t.cpu().squeeze())
                 resampled_trajectories = resample_all_seq(self.trajectories, i_t=i_t) #TODO: pad with zeros here? cf SMC-T code.
-                ancestor = resampled_trajectories[:, k, :]  # get resampled ancestor $\xi_{k-1}$
                 # Mutation: Run bootstrap filter at time k to get new particle without resampling
                 (self.trajectories, self.particles), self.filtering_weights = self.bootstrap_filter.get_new_particle(
                     observation=self.observations[:, k, :], next_observation=self.observations[:, k + 1, :],
@@ -125,7 +125,9 @@ class PoorManSmoothing(SmoothingAlgo):
             resampled_trajectories[t, :, :] = trajectories[t, genealogy[t, :], :] # (seq_len, P, hidden_size)
         return np.transpose(resampled_trajectories, axes=[1,0,2])
 
-    def select_trajectories(self, num=1, select='topk'):
+    def select_trajectories(self, num=1, select='topk', seed=None):
+        if seed is not None:
+            torch.manual_seed(seed)
         if select == 'topk':
             values, indices = torch.topk(input=self.filtering_weights, k=num)
         elif select == 'sampling':

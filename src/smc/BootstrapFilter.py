@@ -1,11 +1,14 @@
 from smc.utils import resample
 import torch
 import torch.nn.functional as F
+from smc.utils import constant_noise
 
 class BootstrapFilter:
-    def __init__(self, num_particles, transition_model):
+    def __init__(self, num_particles, transition_model, sigma=0.5, noise_function=constant_noise):
         self.num_particles = num_particles
         self.transition_model = transition_model
+        self.sigma = sigma
+        self.noise_function = noise_function
 
     def compute_filtering_weights(self, hidden, observations):
         '''
@@ -23,7 +26,7 @@ class BootstrapFilter:
         w = F.softmax(w, dim=0) # dim (P,1)
         return w
 
-    def get_new_particle(self, observation, next_observation, hidden, weights, sigma=0.5, resampling=True):
+    def get_new_particle(self, observation, next_observation, hidden, weights, resampling=True):
         '''
         :param observation:
         :param next_observation:
@@ -47,7 +50,7 @@ class BootstrapFilter:
         else:
             resampled_h = hidden
         # Selection : get $h_t$ = \xi_t^l
-        new_hidden, current_hidden = self.transition_model.get_new_hidden(hidden=resampled_h, observation=observation, sigma=sigma) #TODO: check this function. Ok add noise here.
+        new_hidden, current_hidden = self.transition_model.get_new_hidden(hidden=resampled_h, observation=observation, sigma=self.sigma, noise_function=self.noise_function) #TODO: check this function. Ok add noise here.
         # compute $w_t$
         new_weights = self.compute_filtering_weights(hidden=new_hidden, observations=next_observation)
         return (new_hidden, current_hidden), new_weights

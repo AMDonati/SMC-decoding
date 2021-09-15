@@ -37,6 +37,20 @@ def create_logger(out_file_log):
     logger.addHandler(ch)
     return logger
 
+def decreasing_noise_with_time(sigma, seq_len):
+    times = [sigma/(t+1) for t in range(seq_len)]
+    std_tensor = torch.tensor(times)
+    return std_tensor
+
+def sqrt_decreasing_noise_with_time(sigma, seq_len):
+    times = [sigma/(t+1)**(1/2) for t in range(seq_len)]
+    std_tensor = torch.tensor(times)
+    return std_tensor
+
+def constant_noise(sigma, seq_len):
+    std_tensor = torch.tensor([sigma]*seq_len)
+    return std_tensor
+
 
 if __name__ == "__main__":
 

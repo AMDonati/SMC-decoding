@@ -150,9 +150,9 @@ if __name__ == '__main__':
 
     parser.add_argument("-out_path", type=str, default="output/temp", help="out path ")
     # model params.
-    parser.add_argument("-model", type=str, default="lstm", help="lstm or gpt-2 fine-tune model")
+    parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
     parser.add_argument("-model_path", type=str, help="path if starting with a trained_model.")
-    parser.add_argument("-tokenizer", type=str, default="sst", help="using gpt2 tokenizer or sst vocab.")
+    parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
     parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.)")
     parser.add_argument("-label", type=int, default=1, help="train on positive or negative label.")
@@ -220,6 +220,9 @@ if __name__ == '__main__':
                           p_drop=args.p_drop).to(device)
         elif args.model == "gpt2":
             model = GPT2FTModel(vocab_size=sst_dataset.len_vocab, device=device)
+
+    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)

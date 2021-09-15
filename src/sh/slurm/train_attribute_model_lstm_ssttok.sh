@@ -20,5 +20,5 @@ export PYTHONPATH=src:${PYTHONPATH}
 srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -tokenizer "sst" -label 1 -emb_size 64 -hidden_size 128 -p_drop 0.0 -ep 100 -bs 128 -num_workers 4
 srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -tokenizer "sst" -label 1 -emb_size 64 -hidden_size 128 -p_drop 0.0 -ep 100 -bs 128 -num_workers 4 -label_vocab 1
 srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -tokenizer "sst" -label 1 -emb_size 64 -hidden_size 128 -p_drop 0.0 -ep 100 -bs 128 -num_workers 4 -min_count 1
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -tokenizer "sst" -label 1 -emb_size 64 -hidden_size 128 -p_drop 0.0 -ep 100 -bs 128 -num_workers 4 -label_vocab 1
+srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "lstm" -tokenizer "sst" -label 1 -emb_size 64 -hidden_size 128 -p_drop 0.0 -ep 100 -bs 128 -num_workers 4 -label_vocab 1 -min_count 1
 

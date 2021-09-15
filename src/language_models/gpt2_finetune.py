@@ -2,6 +2,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from smc.utils import constant_noise, decreasing_noise_with_time
 
 class GPT2FTModel(nn.Module):
     def __init__(self, vocab_size, device, hidden_size=768):
@@ -25,14 +26,16 @@ class GPT2FTModel(nn.Module):
         log_probas = log_probas.view(log_probas.size(0)*log_probas.size(1), -1)
         return log_probas, logits, last_hidden_state
 
-    def get_hidden_from_input(self, input, attn_mask=None, sigma=0.5):
+    def get_hidden_from_input(self, input, attn_mask=None, sigma=0.5, noise_function=constant_noise):
         if attn_mask is None:
             outputs = self.model(input_ids=input, output_hidden_states=True)
         else:
             outputs = self.model(input_ids=input, attention_mask=attn_mask, output_hidden_states=True)
         last_hidden_state = outputs.hidden_states[-1].squeeze() # shape (B,S,hidden_size)
         if sigma is not None:
-            last_hidden_state = self.add_noise(last_hidden_state, sigma) #TODO: check hidden_states meaning.
+            seq_len = last_hidden_state.shape[1]
+            std_tensor = noise_function(sigma=sigma, seq_len=seq_len)
+            last_hidden_state = self.add_noise(last_hidden_state, std_tensor) #TODO: check hidden_states meaning.
         return last_hidden_state
 
     def predict_from_hidden(self, hidden):
@@ -41,24 +44,28 @@ class GPT2FTModel(nn.Module):
         probas = all_probas[:,-1,:]
         return probas, all_probas
 
-    def get_new_hidden(self, hidden, observation, sigma=0.5):
+    def get_new_hidden(self, hidden, observation, sigma=0.5, noise_function=constant_noise):
         outputs = self.model(input_ids=observation, output_hidden_states=True)
         current_hidden = outputs.hidden_states[-1] # shape (1, S, hidden_size)
-        current_hidden = self.add_noise(current_hidden, sigma)
+        seq_len = current_hidden.shape[1]
+        std_tensor = noise_function(sigma=sigma, seq_len=seq_len)
+        current_hidden = self.add_noise(current_hidden, std_tensor)
         new_hidden = torch.cat([hidden, current_hidden], dim=-2)
         return new_hidden, current_hidden
 
-    def add_noise(self, params, sigma):
+    def add_noise(self, params, std_tensor):
         '''
         :param params: tensor to which noise should be added.
         :param sigma: covariance matrix.
         :return:
         '''
-        gaussian_noise = torch.normal(mean=params.new_zeros(params.size()), std=params.new_ones(params.size()))
-        noise = (sigma) ** (1 / 2) * gaussian_noise #here sigma is a variance.
-        return params + noise
+        std_tensor_ = std_tensor.view(1,std_tensor.size(0),1).repeat(params.size(0), 1, params.size(-1))
+        gaussian_noise = torch.normal(mean=params.new_zeros(params.size()), std=std_tensor_)
+        return params + gaussian_noise
 
-    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0):
+    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0, seed=None):
+        if seed is not None:
+            torch.manual_seed(seed)
         inputs = self.tokenizer.encode(prompt, return_tensors="pt")
         # Sampling decoding.
         sample_output = self.model.generate(

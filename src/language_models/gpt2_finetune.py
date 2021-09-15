@@ -25,7 +25,7 @@ class GPT2FTModel(nn.Module):
         logits = self.trainable_layer(last_hidden_state)
         log_probas = F.log_softmax(logits, dim=-1)
         log_probas = log_probas.view(log_probas.size(0)*log_probas.size(1), -1)
-        return log_probas, logits, last_hidden_state
+        return log_probas, logits
 
     def get_hidden_from_input(self, input, attn_mask=None, sigma=0.5, noise_function=constant_noise):
         if attn_mask is None:

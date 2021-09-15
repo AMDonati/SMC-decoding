@@ -17,15 +17,5 @@ conda activate smc-dec
 
 export PYTHONPATH=src:${PYTHONPATH}
 
-#srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 32 -num_workers 4
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 32 -num_workers 4 -lr 0.00005 -grad_clip 1
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 32 -num_workers 4 -lr 0.00005 -grad_clip 5
-#srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 16 -num_workers 4
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 16 -num_workers 4 -lr 0.00005 -grad_clip 1
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 16 -num_workers 4 -lr 0.00005 -grad_clip 5
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 64 -num_workers 4 -lr 0.00005
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 64 -num_workers 4 -lr 0.00005 -grad_clip 1
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 64 -num_workers 4 -lr 0.00005 -grad_clip 5
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 128 -num_workers 4 -lr 0.00005
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 128 -num_workers 4 -lr 0.00005 -grad_clip 1
-srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 128 -num_workers 4 -lr 0.00005 -grad_clip 5
+srun python -u src/attribute_models/train_attribute_model.py -out_path "output/sst_attribute_model" -model "gpt2" -label 1 -p_drop 0.0 -ep 50 -bs 16 -num_workers 4
+

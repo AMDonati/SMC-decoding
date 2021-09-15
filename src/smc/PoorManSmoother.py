@@ -94,7 +94,7 @@ class PoorManSmoothing(SmoothingAlgo):
                 #self.trajectories = torch.cat([resampled_trajectories, self.particles.unsqueeze(-2)], dim=-2) #TODO: useless ?
             indices_matrix = torch.stack(indices_matrix, dim=0) # (seq_len, P)
             particles_seq = torch.stack(particles_seq, dim=0)
-            return particles_seq.squeeze().numpy(), indices_matrix.numpy()
+            return particles_seq.squeeze().cpu().numpy(), indices_matrix.cpu().numpy()
 
     def get_genealogy(self, indices_matrix):
         n_particles = indices_matrix.shape[-1]

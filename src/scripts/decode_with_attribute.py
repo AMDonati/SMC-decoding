@@ -68,9 +68,9 @@ def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_
                                                              num_observations=num_observations)
         seq_of_observations.append(new_observations)
         seq_of_decoded_observations.append(decoded_observations)
-        seq_of_best_hidden.append(selected_trajectories[0].numpy())
-        seq_of_best_hidden_norm.append(np.array([round(torch.linalg.norm(selected_trajectories[0,t]).item(),1) for t in range(selected_trajectories[0].shape[0])]))
-        seq_of_best_observations.append(new_observations[0, 0, :].numpy())
+        seq_of_best_hidden.append(selected_trajectories[0].cpu().numpy())
+        seq_of_best_hidden_norm.append(np.array([round(torch.linalg.norm(selected_trajectories[0,t]).cpu().item(),1) for t in range(selected_trajectories[0].shape[0])]))
+        seq_of_best_observations.append(new_observations[0, 0, :].cpu().numpy())
         observations = new_observations[0, 0, :].unsqueeze(
             -1)  # TODO: change this to get the argmax of the traj & observations ?
         observations = observations.unsqueeze(0)

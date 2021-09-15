@@ -63,10 +63,10 @@ class GPT2FTModel(nn.Module):
         gaussian_noise = torch.normal(mean=params.new_zeros(params.size()), std=std_tensor_)
         return params + gaussian_noise
 
-    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0, seed=None):
+    def generate_input_word_sequences(self, prompt, device, max_length=50, top_k=0, seed=None):
         if seed is not None:
             torch.manual_seed(seed)
-        inputs = self.tokenizer.encode(prompt, return_tensors="pt")
+        inputs = self.tokenizer.encode(prompt, return_tensors="pt").to(device)
         # Sampling decoding.
         sample_output = self.model.generate(
             inputs,

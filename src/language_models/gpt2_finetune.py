@@ -5,7 +5,7 @@ import torch
 from smc.utils import constant_noise, decreasing_noise_with_time
 
 class GPT2FTModel(nn.Module):
-    def __init__(self, vocab_size, device, hidden_size=768):
+    def __init__(self, vocab_size, device, hidden_size=768, init_weight=True):
         super(GPT2FTModel, self).__init__()
         self.configuration = GPT2Config(use_cache=True, output_hidden_states=True, vocab_size=vocab_size)
         self.model = GPT2LMHeadModel(self.configuration).from_pretrained("cache/gpt2").to(device)
@@ -13,7 +13,9 @@ class GPT2FTModel(nn.Module):
             param.requires_grad = False
         self.tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
         self.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-        self.trainable_layer = nn.Linear(hidden_size, vocab_size).to(device)
+        self.trainable_layer = nn.Linear(hidden_size, vocab_size, bias=False).to(device)
+        if init_weight:
+            self.trainable_layer.weight.data = self.model.lm_head.weight.data
         self.device = device
 
     def forward(self, input, attn_mask=None):
@@ -64,20 +66,30 @@ class GPT2FTModel(nn.Module):
         gaussian_noise = torch.normal(mean=params.new_zeros(params.size()), std=std_tensor_)
         return params + gaussian_noise
 
-    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0, seed=None):
+    def generate_input_word_sequences(self, prompt, max_length=50, top_k=0, seed=None, temperature=1.0):
         if seed is not None:
             torch.manual_seed(seed)
         inputs = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
-        # Sampling decoding.
-        sample_output = self.model.generate(
-            inputs,
-            do_sample=True,
-            max_length=max_length,
-            top_k=top_k
-        )
+        if temperature != "greedy":
+            # Sampling decoding.
+            sample_output = self.model.generate(
+                inputs,
+                do_sample=True,
+                max_length=max_length,
+                top_k=top_k,
+                temperature=temperature
+            )
+        else:
+            # Sampling decoding.
+            sample_output = self.model.generate(
+                inputs,
+                do_sample=False,
+                max_length=max_length,
+                top_k=top_k)
         print("Output:\n" + 100 * '-')
-        print(self.tokenizer.decode(sample_output[0], skip_special_tokens=True))
-        return sample_output.unsqueeze(-1)
+        decoded_output = self.tokenizer.decode(sample_output[0], skip_special_tokens=True)
+        print(decoded_output)
+        return sample_output.unsqueeze(-1), decoded_output
 
 # to compute the number of trainable parameters;
 #model_parameters = filter(lambda p: p.requires_grad, model.parameters())

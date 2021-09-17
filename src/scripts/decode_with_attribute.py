@@ -37,13 +37,13 @@ def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_
     bootstrap_filter = BootstrapFilter(num_particles=num_particles, transition_model=model, sigma=sigma,
                                        noise_function=noise_function)
     # Get init word sequences
-    init_observations = model.generate_input_word_sequences(prompt=prompt, max_length=max_length, seed=seed)
+    init_observations, decoded_init_observations = model.generate_input_word_sequences(prompt=prompt, max_length=max_length, seed=seed)
     observations = init_observations
 
     seq_of_observations, seq_of_hidden, seq_of_decoded_observations = [init_observations], [], [model.tokenizer.decode(init_observations.squeeze(), skip_special_tokens=True)]
     seq_of_best_hidden, seq_of_best_observations, seq_of_best_hidden_norm = [], [], []
     logger.info('INIT OBSERVATION:')
-    logger.info(model.tokenizer.decode(init_observations.squeeze(), skip_special_tokens=True))
+    logger.info(decoded_init_observations)
 
     for iter in range(num_iterations):
         logger.info(

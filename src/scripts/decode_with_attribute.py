@@ -7,6 +7,8 @@ from language_models.gpt2_finetune import GPT2FTModel
 import os
 import numpy as np
 import json
+from attribute_models.sst_sentiment import SSTDataset
+from transformers import GPT2Tokenizer
 
 
 def save_hparams(args, out_folder):
@@ -29,7 +31,7 @@ def sample_new_observations(predictions, num=1, select='sampling', seed=None):
 
 
 def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_length=50, num_particles=10,
-                          num_iterations=10, num_trajectories=1, num_observations=1, select='sampling', seed=None):
+                          num_iterations=10, num_trajectories=1, num_observations=1, select='sampling', seed=None, input_prompt=None):
     out_file_log = os.path.join(out_folder, '{}_word_sequences.log'.format(prompt))
     logger = create_logger(out_file_log)
 
@@ -37,7 +39,7 @@ def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_
     bootstrap_filter = BootstrapFilter(num_particles=num_particles, transition_model=model, sigma=sigma,
                                        noise_function=noise_function)
     # Get init word sequences
-    init_observations, decoded_init_observations = model.generate_input_word_sequences(prompt=prompt, max_length=max_length, seed=seed)
+    init_observations, decoded_init_observations = model.generate_input_word_sequences(prompt=prompt, max_length=max_length, seed=seed, temperature='greedy')
     observations = init_observations
 
     seq_of_observations, seq_of_hidden, seq_of_decoded_observations = [init_observations], [], [model.tokenizer.decode(init_observations.squeeze(), skip_special_tokens=True)]
@@ -50,7 +52,7 @@ def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_
             '-----------------------------------------iter #{} --------------------------------------------------'.format(
                 iter))
         smc_smoother = PoorManSmoothing(bootstrap_filter=bootstrap_filter, observations=observations,
-                                        out_folder=out_folder)
+                                        out_folder=out_folder, init_prompt=input_prompt, prompt=prompt)
         _, _ = smc_smoother.run_PMS()
         # select trajectories
         selected_trajectories, _ = smc_smoother.select_trajectories(num=num_trajectories, select=select, seed=seed)
@@ -74,6 +76,7 @@ def decode_with_attribute(prompt, model, out_folder, sigma, noise_function, max_
         observations = new_observations[0, 0, :].unsqueeze(
             -1)  # TODO: change this to get the argmax of the traj & observations ?
         observations = observations.unsqueeze(0)
+        print("OBSERVATIONS SHAPE:", observations.shape[1])
     logger.info(
         '---------------------------------------------------------------------------------------------------------------')
     np.save(os.path.join(out_folder, "seq_of_best_observations.npy"), np.stack(seq_of_best_observations))
@@ -101,10 +104,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-out_path", type=str, default="output/temp/sst_decoding", help="out path")
-    parser.add_argument("-model_path", type=str, default="output/sst_attribute_model/best_models/gpt2_ft/1/model.pt",  help="path for the pretrained attribute model")
+    parser.add_argument("-model_path", type=str, help="path for the pretrained attribute model")
     # 'output/sst_attribute_model/best_models/gpt2_ft/1/model.pt'
-    parser.add_argument("-max_length", type=int, default=50, help='length maximal for word sequence')
-    parser.add_argument("-num_particles", type=int, default=50, help='number of particles for the smc algo.')
+    parser.add_argument("-max_length", type=int, default=10, help='length maximal for word sequence')
+    parser.add_argument("-num_particles", type=int, default=2, help='number of particles for the smc algo.')
     parser.add_argument("-num_trajectories", type=int, default=1,
                         help='number of trajectories to display for the smc algo.')
     parser.add_argument("-num_observations", type=int, default=1,
@@ -112,12 +115,16 @@ if __name__ == '__main__':
     parser.add_argument("-num_iterations", type=int, default=10, help='number of iterations for the decoding algo.')
     parser.add_argument("-select", type=str, default='sampling',
                         help='selection method for the hidden states & observations.')
-    parser.add_argument("-std", type=float, default=0.5,
+    parser.add_argument("-std", type=float, default=0,
                         help='sigma constant for the noise added to the transition model.')
     parser.add_argument("-noise_function", type=str, default="constant",
                         help='sigma function for the noise added to the transition model.')
     parser.add_argument("-seed", type=str, default="123",
                         help='sigma function for the noise added to the transition model.')
+    parser.add_argument("-prompt", type=int, default=0,
+                        help='number of prompt sentences for transition model')
+    parser.add_argument("-label", type=int, default=1,
+                        help='number of prompt sentences for ')
     args = parser.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -128,7 +135,7 @@ if __name__ == '__main__':
         model = GPT2FTModel(vocab_size=50257, device=device)
 
     out_folder = os.path.join(args.out_path,
-                              "{}particles_{}iter_{}_std{}_noisefn-{}".format(args.num_particles, args.num_iterations, args.select, args.std, args.noise_function))
+                              "{}particles_{}iter_{}_std{}_noisefn-{}_prompt{}".format(args.num_particles, args.num_iterations, args.select, args.std, args.noise_function, args.prompt))
     if args.model_path is None:
         out_folder = out_folder + '_random'
     out_folder = os.path.join(out_folder, "seed_{}".format(args.seed))
@@ -144,12 +151,23 @@ if __name__ == '__main__':
     elif args.noise_function == 'sqrt_decreasing':
         noise_function = sqrt_decreasing_noise_with_time
 
+    if args.prompt > 0:
+        tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        sst_dataset = SSTDataset(tokenizer=tokenizer)
+        train_set, val_set, test_set = sst_dataset.load_sst_dataset()
+        train_set = sst_dataset.preprocess_dataset(train_set, label=args.label)
+        val_set = sst_dataset.preprocess_dataset(val_set, label=args.label)
+        selected_prompt = sst_dataset.get_random_samples(train_set, num_samples=args.prompt)
+    else:
+        selected_prompt = None
+
     if device.type == "cpu":
         prompts = ["The movie is", "The potato"]
+        prompts = ["I think that"]
     else:
         prompts = ["The movie is", "I disliked the movie", "I liked the movie.", "The potato", "This man is very ugly.", "This man is awesome."]
     for prompt in prompts:
-        out_file_log = '{}_word_sequences.log'.format(prompt)
         seq_of_hidden, seq_of_observations, seq_decoded_observations = decode_with_attribute(prompt=prompt, model=model,
                                                                                          out_folder=out_folder,
                                                                                          sigma=args.std,
@@ -160,5 +178,6 @@ if __name__ == '__main__':
                                                                                          num_trajectories=args.num_trajectories,
                                                                                          num_observations=args.num_observations,
                                                                                          select=args.select,
-                                                                                         seed=args.seed)
+                                                                                         seed=args.seed,
+                                                                                        input_prompt=selected_prompt)
     print("done")

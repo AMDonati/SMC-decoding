@@ -34,7 +34,8 @@ class GPT2FTModel(nn.Module):
             outputs = self.model(input_ids=input, output_hidden_states=True)
         else:
             outputs = self.model(input_ids=input, attention_mask=attn_mask, output_hidden_states=True)
-        last_hidden_state = outputs.hidden_states[-1].squeeze() # shape (B,S,hidden_size)
+        last_hidden_state = outputs.hidden_states[-1].squeeze(-2) # shape (B,S,hidden_size)
+        last_hidden_state = last_hidden_state[:,-1,:].unsqueeze(1)
         if sigma is not None:
             seq_len = last_hidden_state.shape[1]
             std_tensor = noise_function(sigma=sigma, seq_len=seq_len)
@@ -70,6 +71,7 @@ class GPT2FTModel(nn.Module):
         if seed is not None:
             torch.manual_seed(seed)
         inputs = self.tokenizer.encode(prompt, return_tensors="pt").to(self.device)
+        len_prompt = inputs.shape[-1]
         if temperature != "greedy":
             # Sampling decoding.
             sample_output = self.model.generate(
@@ -89,6 +91,7 @@ class GPT2FTModel(nn.Module):
         print("Output:\n" + 100 * '-')
         decoded_output = self.tokenizer.decode(sample_output[0], skip_special_tokens=True)
         print(decoded_output)
+        sample_output = sample_output[:,len_prompt:]
         return sample_output.unsqueeze(-1), decoded_output
 
 # to compute the number of trainable parameters;

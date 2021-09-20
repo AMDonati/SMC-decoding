@@ -8,6 +8,7 @@ from attribute_models.sst_tokenizer import SSTTokenizer
 from nltk.probability import FreqDist
 from nltk.tokenize import word_tokenize
 import os
+import random
 
 
 class SSTDataset():
@@ -109,6 +110,15 @@ class SSTDataset():
         processed_dataset = dataset.map(split_input_target)
         return processed_dataset
 
+    def get_random_samples(self, dataset, num_samples=10):
+        num_list = random.sample(range(0, len(dataset)), num_samples)
+        list_samples = []
+        for n in num_list:
+            sample = dataset[n]["input_ids"] + [dataset[n]["target_ids"][-1]]
+            list_samples.append(sample)
+        selected_samples = [tok for s in list_samples for tok in s]
+        return torch.tensor(selected_samples)
+
     def get_torch_dataset(self, dataset, columns=['input_ids', 'target_ids', 'attention_mask']):
         dataset.set_format(type='torch', columns=columns)
         return dataset
@@ -161,9 +171,11 @@ if __name__ == '__main__':
     sst_dataset.plot_most_frequent_words(train_set)
     sst_dataset.plot_len_reviews(train_set)
     train_set = sst_dataset.preprocess_dataset(train_set)
+    selected_samples = sst_dataset.get_random_samples(train_set)
     train_set, train_dataloader = sst_dataset.prepare_data_for_torch(train_set)
     train_set.__getitem__(0)
     batch = next(iter(train_dataloader))
+    selected_samples
     print("-----------------------------------------------------------------------------")
     print("SST dataset with SST tokenizer")
     dataset = load_from_disk("cache/sst/all_data")

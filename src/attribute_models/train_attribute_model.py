@@ -84,9 +84,9 @@ def generate_text_lm(model, tokenizer, device, out_path, kl_model, temperatures=
     dict_words_gpt = dict_words
     for temp in temperatures:
         for n in range(num):
-            input_idx = tokenizer.encode(prompt, return_tensors="pt")
+            input_idx = tokenizer.encode(prompt, return_tensors="pt").to(device)
             if len(input_idx.size()) == 1:
-                input_idx = input_idx.view(1, input_idx.shape[0]).to(device)
+                input_idx = input_idx.view(1, input_idx.shape[0])
             with torch.no_grad():
                 for i in range(num_words):
                     _, logits = model(input_idx)  # output (S, num_tokens)

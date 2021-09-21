@@ -164,6 +164,20 @@ class SSTDataset():
 
 
 if __name__ == '__main__':
+    from datasets import load_dataset
+    quora_dataset = load_dataset("quora")
+    quora_train = quora_dataset["train"]
+    print("examples of train QUORA DATASET:")
+    print(quora_train[:10])
+    print("quora dataset loaded")
+
+    #ptb_dataset = load_dataset("ptb_text_only")
+    #print("ptb dataset loaded")
+    #ptb_train = ptb_dataset["train"] # 42068 samples.
+
+    webtext_dataset = load_dataset("openwebtext")
+    webtext_train = webtext_dataset["train"]
+
     print("SST dataset with GPT2 tokenizer")
     tokenizer = GPT2Tokenizer.from_pretrained("cache/gpt2")
     sst_dataset = SSTDataset(tokenizer=tokenizer)

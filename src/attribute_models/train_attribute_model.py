@@ -77,11 +77,11 @@ def evaluate(model, val_generator, criterion, device):
     return total_loss / (batch + 1)
 
 
-def generate_text_lm(model, tokenizer, device, out_path, kl_model, temperatures=["greedy", 0.7, 1.0, 2.0], num_words=50, prompt="The", num=5):
+def generate_text_lm(model, tokenizer, device, out_path, kl_model, temperatures=["greedy", 0.7], num_words=50, prompt="The", num=5):
     model.eval()
     kl_model.eval()
     dict_words = {k: "" for k in temperatures}
-    dict_words_gpt = dict_words
+    dict_words_gpt = {k: "" for k in temperatures}
     for temp in temperatures:
         for n in range(num):
             input_idx = tokenizer.encode(prompt, return_tensors="pt").to(device)
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser.add_argument("-out_path", type=str, default="output/temp", help="out path ")
     # model params.
     parser.add_argument("-model", type=str, default="gpt2", help="lstm or gpt-2 fine-tune model")
-    parser.add_argument("-model_path", type=str, help="path if starting with a trained_model.")
+    parser.add_argument("-model_path", type=str, default="output/sst_attribute_model_new/gpt2_lr5e-05_gradclip-None_bs16_KLcoeff0.5_initweight1/1/model.pt", help="path if starting with a trained_model.")
     parser.add_argument("-tokenizer", type=str, default="gpt2", help="using gpt2 tokenizer or sst vocab.")
     parser.add_argument("-min_count", type=int, default=2, help="for choosing sst tokenizer vocab.")
     parser.add_argument("-label_vocab", type=int, help="for choosing sst tokenizer vocab (all words or positive/negative.)")
@@ -196,21 +196,25 @@ if __name__ == '__main__':
 
     # out files
     tok_string = args.tokenizer if args.tokenizer == "gpt2" else "{}-count{}-lv{}".format(args.tokenizer, args.min_count, args.label_vocab)
-    if args.model == "lstm":
-        out_path = os.path.join(args.out_path, "{}_tok-{}_{}E_{}H_p{}_lr{}_gradclip-{}_bs{}_KLcoeff{}".format(args.model,
-                                                                                                    tok_string,
-                                                                                                    args.emb_size,
-                                                                                                    args.hidden_size,
-                                                                                                    args.p_drop,
-                                                                                                    args.lr,
-                                                                                                    args.grad_clip, args.bs, args.KL_coeff))
-    elif args.model == "gpt2":
-        out_path = os.path.join(args.out_path, "{}_lr{}_gradclip-{}_bs{}_KLcoeff{}_initweight{}".format(args.model, args.lr,
-                                                                                                args.grad_clip,
-                                                                                                args.bs,
-                                                                                                args.KL_coeff,
-                                                                                              args.init_weight))
-    out_path = os.path.join(out_path, "{}".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+    if args.model_path is not None:
+        out_folder = os.path.dirname(args.model_path)
+        out_path = os.path.join(out_folder, "{}".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
+    else:
+        if args.model == "lstm":
+            out_path = os.path.join(args.out_path, "{}_tok-{}_{}E_{}H_p{}_lr{}_gradclip-{}_bs{}_KLcoeff{}".format(args.model,
+                                                                                                        tok_string,
+                                                                                                        args.emb_size,
+                                                                                                        args.hidden_size,
+                                                                                                        args.p_drop,
+                                                                                                        args.lr,
+                                                                                                        args.grad_clip, args.bs, args.KL_coeff))
+        elif args.model == "gpt2":
+            out_path = os.path.join(args.out_path, "{}_lr{}_gradclip-{}_bs{}_KLcoeff{}_initweight{}".format(args.model, args.lr,
+                                                                                                    args.grad_clip,
+                                                                                                    args.bs,
+                                                                                                    args.KL_coeff,
+                                                                                                  args.init_weight))
+        out_path = os.path.join(out_path, "{}".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S")))
     if not os.path.isdir(out_path):
         os.makedirs(out_path)
     out_file_log = os.path.join(out_path, "training_log.log")
@@ -252,19 +256,20 @@ if __name__ == '__main__':
     # for the kl regularization:
     kl_model = GPT2FTModel(vocab_size=sst_dataset.len_vocab, device=device, init_weight=True)
 
-    #model_parameters = filter(lambda p: p.requires_grad, model.parameters())
-    #params = sum([np.prod(p.size()) for p in model_parameters])
+    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
 
     # train parameters
     optimizer = torch.optim.Adam(params=model.parameters(), lr=args.lr)
     PAD_IDX = sst_dataset.get_PAD_IDX()
     criterion = torch.nn.NLLLoss(ignore_index=PAD_IDX)
 
-    # train model
-    train(model=model, train_generator=train_dataloader, val_generator=val_dataloader, criterion=criterion,
-          optimizer=optimizer, device=device, out_path=out_path, EPOCHS=args.ep, KL_coeff=args.KL_coeff, kl_model=kl_model)
+    if args.ep > 0:
+        # train model
+        train(model=model, train_generator=train_dataloader, val_generator=val_dataloader, criterion=criterion,
+              optimizer=optimizer, device=device, out_path=out_path, EPOCHS=args.ep, KL_coeff=args.KL_coeff, kl_model=kl_model)
 
-    prompts = ['The', 'The movie', 'I think that', 'I liked the movie.', 'I disliked badly the movie.']
+    prompts = ['The potato', 'The movie', 'I think that', 'I liked the movie.', 'I disliked badly the movie.']
     for prompt in prompts:
         # generate text post-training:
         generate_text_lm(model=model, tokenizer=sst_dataset.tokenizer, kl_model=kl_model, device=device, out_path=out_path, prompt=prompt)
